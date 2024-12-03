@@ -56,7 +56,7 @@ This tool uses the following third-party components:
   - Apache License 2.0
 - Original source: https://github.com/trumank/repak
 
-Full license texts can be found in the `repak/licenses` directory of this distribution.
+Full license texts can be found in the `repak` directory of this distribution.
 
 ## Installation Requirements
 
