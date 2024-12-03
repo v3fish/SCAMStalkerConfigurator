@@ -9,6 +9,47 @@ from .config_interface import ConfigInterface
 from .updater import UpdateChecker
 from . import VERSION
 
+class PresetDialog(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.result = None
+        
+        # Configure window
+        self.title("New Preset")
+        self.geometry("300x120")
+        self.resizable(False, False)
+        self.transient(parent)
+        self.grab_set()
+        
+        # Center the window
+        self.update_idletasks()
+        x = parent.winfo_x() + (parent.winfo_width() // 2) - (self.winfo_width() // 2)
+        y = parent.winfo_y() + (parent.winfo_height() // 2) - (self.winfo_height() // 2)
+        self.geometry(f"+{x}+{y}")
+        
+        # Create and pack widgets
+        ttk.Label(self, text="Enter preset name:").pack(padx=20, pady=(20,5))
+        
+        self.entry = ttk.Entry(self, width=40)
+        self.entry.pack(padx=20, pady=5)
+        
+        button_frame = ttk.Frame(self)
+        button_frame.pack(pady=10)
+        
+        ttk.Button(button_frame, text="OK", command=self.ok).pack(side='left', padx=5)
+        ttk.Button(button_frame, text="Cancel", command=self.cancel).pack(side='left', padx=5)
+        
+        self.entry.focus_set()
+        self.bind('<Return>', lambda e: self.ok())
+        self.bind('<Escape>', lambda e: self.cancel())
+
+    def ok(self):
+        self.result = self.entry.get()
+        self.destroy()
+
+    def cancel(self):
+        self.destroy()
+        
 class MovementConfigEditor:
     def __init__(self):
         self.window = tk.Tk()
@@ -48,7 +89,7 @@ class MovementConfigEditor:
         
         credits_label = ttk.Label(credits_frame, 
                                 text=f"Made by v3fish | Credits: repak.exe by github.com/trumank | Version: {VERSION}",
-                                font=('Arial', 8, 'italic'))
+                                font=('Arial', 8, 'italic bold'))  # Changed font to include bold
         credits_label.pack(side='right')
 
     def setup_top_frame(self):
@@ -181,7 +222,10 @@ class MovementConfigEditor:
             messagebox.showwarning("Warning", "Make changes before saving a preset!")
             return
 
-        name = simpledialog.askstring("New Preset", "Enter preset name:")
+        dialog = PresetDialog(self.window)
+        self.window.wait_window(dialog)
+        name = dialog.result
+        
         if not name:
             return
             
@@ -220,11 +264,12 @@ class MovementConfigEditor:
             messagebox.showerror("Error", "Please verify all values are correct!")
             return
 
-        if not self.config_interface.validate_mods_directory():
-            return
-
         if not self.config_interface.has_changes() and not self.force_defaults.get():
             messagebox.showwarning("Warning", "Make changes before creating a mod!")
+            return
+
+        mods_check = self.config_interface.validate_mods_directory()
+        if not mods_check:
             return
 
         if self.force_defaults.get():
@@ -237,9 +282,10 @@ class MovementConfigEditor:
 
         config = self.config_interface.get_current_config(include_defaults=self.force_defaults.get())
         try:
-            mods_path = os.path.join(self.config_interface.game_dir.get(), "Stalker2", "Content", "Paks", "~mods")
-            self.mod_creator.create_mod(config, mods_path)
-            messagebox.showinfo("Success", "Mod created successfully!")
+            is_local, mod_path = mods_check
+            self.mod_creator.create_mod(config, mod_path)
+            messagebox.showinfo("Success", "Mod created successfully!" + 
+                              ("\nThe mod has been created in the current folder." if is_local else ""))
         except Exception as e:
             messagebox.showerror("Error", f"Failed to create mod: {str(e)}")
 

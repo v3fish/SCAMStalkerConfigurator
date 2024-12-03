@@ -22,17 +22,17 @@ class ConfigInterface:
             config.read('stalker_location.ini')
             if 'Directory' in config and 'path' in config['Directory']:
                 saved_dir = config['Directory']['path']
-                if saved_dir and self.validate_game_directory(saved_dir, show_error=False):
+                if saved_dir and os.path.exists(saved_dir):
                     self.game_dir.set(saved_dir)
-                    self.update_directory_status(True)
         except:
             pass
 
     def save_directory(self, directory):
-        config = configparser.ConfigParser()
-        config['Directory'] = {'path': directory}
-        with open('stalker_location.ini', 'w') as f:
-            config.write(f)
+        if directory:  # Only save if directory is not empty
+            config = configparser.ConfigParser()
+            config['Directory'] = {'path': directory}
+            with open('stalker_location.ini', 'w') as f:
+                config.write(f)
 
     def setup_game_dir_frame(self, frame):
         dir_frame = ttk.Frame(frame)
@@ -51,10 +51,8 @@ class ConfigInterface:
         input_frame.pack(fill='x')
     
         ttk.Label(input_frame, text="Game Directory:").pack(side='left', padx=5)
-        self.dir_entry = ttk.Entry(input_frame, textvariable=self.game_dir, width=60)
+        self.dir_entry = ttk.Entry(input_frame, textvariable=self.game_dir, width=55)
         self.dir_entry.pack(side='left', padx=5, fill='x', expand=True)
-    
-        self.game_dir.trace('w', lambda *args: self.validate_game_directory(self.game_dir.get()))
     
         ttk.Button(input_frame, text="Browse", command=self.browse_directory).pack(side='left', padx=5)
         ttk.Button(input_frame, text="Open Mod Directory", command=self.open_game_directory).pack(side='left', padx=5)
@@ -62,20 +60,16 @@ class ConfigInterface:
     def browse_directory(self):
         dir_path = filedialog.askdirectory(title="Select Stalker 2 Directory")
         if dir_path:
-            if self.validate_game_directory(dir_path):
+            if self.validate_game_directory(dir_path, show_error=True):
                 self.game_dir.set(dir_path)
                 self.save_directory(dir_path)
 
     def validate_game_directory(self, path, show_error=True):
         if not path:
-            self.update_directory_status(False)
             return False
             
         valid = os.path.exists(path) and os.path.exists(os.path.join(path, "Stalker2"))
         
-        if valid:
-            self.save_directory(path)
-            
         if show_error and not valid:
             messagebox.showerror("Error", 
                 "Invalid Stalker 2 directory!\n\n"
@@ -84,45 +78,39 @@ class ConfigInterface:
                 "Steam: C:\\Program Files (x86)\\Steam\\steamapps\\common\\S.T.A.L.K.E.R. 2 Heart of Chornobyl\n"
                 "Xbox: C:\\XboxGames\\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\\Content")
         
-        self.update_directory_status(valid)
         return valid
-
-    def update_directory_status(self, valid):
-        if self.dir_entry:
-            self.dir_entry.configure(foreground='green' if valid else 'red')
 
     def open_game_directory(self):
         if not self.game_dir.get():
-            messagebox.showerror("Error", "Please set the game directory first!")
+            if messagebox.askyesno("No Directory Set", 
+                "Game directory is not set.\nWould you like to set it now?"):
+                self.browse_directory()
             return
-       
-        if not self.validate_game_directory(self.game_dir.get()):
+            
+        if not self.validate_game_directory(self.game_dir.get(), show_error=True):
             return
-       
+            
         mods_path = os.path.join(self.game_dir.get(), "Stalker2", "Content", "Paks", "~mods")
         if not os.path.exists(mods_path):
-            messagebox.showerror("Error", 
-                "~mods folder not found!\n\n"
-                "Please create the following folder:\n"
-                f"{mods_path}")
-            return
+            os.makedirs(mods_path)
         os.startfile(mods_path)
 
     def validate_mods_directory(self):
         if not self.game_dir.get():
-            messagebox.showerror("Error", "Please set the game directory first!")
+            if messagebox.askyesno("Create Mod Locally", 
+                "No game directory set. Would you like to create the mod in the current folder instead?"):
+                # Return a tuple indicating local creation should be used
+                return (True, os.getcwd())
+            return False
+            
+        if not self.validate_game_directory(self.game_dir.get(), show_error=True):
             return False
             
         mods_path = os.path.join(self.game_dir.get(), "Stalker2", "Content", "Paks", "~mods")
         if not os.path.exists(mods_path):
-            messagebox.showerror("Error", 
-                "~mods folder not found!\n\n"
-                "Please create the following folder:\n"
-                f"{mods_path}\n\n"
-                "Or verify your game directory is set correctly.")
-            return False
+            os.makedirs(mods_path)
             
-        return True
+        return (False, mods_path)
 
     def setup_section_frame(self, frame, section):
         row = 0
