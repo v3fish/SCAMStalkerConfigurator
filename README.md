@@ -8,14 +8,21 @@ GUI tool for S.T.A.L.K.E.R. 2: Heart of Chornobyl to configuring vaulting, movem
 - Automatic mod creation and installation
 - Mouse smoothing/acceleration removal utility
 
+[![Nexus Mods](https://img.shields.io/badge/Nexus%20Mods-SCAM-orange)](YOUR_NEXUS_MOD_URL_HERE)
+
+## Download
+
+You can download SCAM from either:
+- [Nexus Mods](YOUR_NEXUS_MOD_URL_HERE) (Recommended - Download and Endorse :))
+- [GitHub Releases](https://github.com/v3fish/SCAMStalkerConfigurator/releases)
+
 ## Usage
 
-1. Download the latest release from the [releases page](https://github.com/v3fish/SCAMStalkerConfigurator/releases)
-2. Extract all files to a location of your choice
-3. Run `Stalker Configurator Aiming Movement.exe`
+1. Extract all files to a location of your choice
+2. Run `Stalker Configurator Aiming Movement.exe`
 4. Set your game directory (required for automatic mod installation)
 5. Adjust settings or load a preset
-6. Click "Create Mod" to generate and install the mod
+7. Click "Create Mod" to generate and install the mod
 
 ### Game Directory Examples
 
@@ -30,7 +37,8 @@ Xbox: C:\XboxGames\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\Content
 - Base movement speed adjustments
 - Sprint and crouch modifiers
 - Jump height configuration
-- Movement acceleration tuning
+- Movement tuning
+- Vaulting adjustments
 
 ### Aiming Configuration
 - Horizontal and vertical sensitivity
@@ -77,7 +85,7 @@ Full license texts can be found in the `repak` directory of this distribution.
 
 ## Mod Installation Location
 
-If configured Mods are automatically installed to:
+If directory is configured Mods are automatically installed to:
 ```
 Example Directories
 Steam: <Game Directory>\Stalker2\Content\Paks\~mods
@@ -86,9 +94,6 @@ Xbox Game Pass: <Game Directory>\Stalker2\Content\Paks\~mods
 
 ## Troubleshooting
 
-If the mod doesn't appear to be working:
-
-1. Verify the game directory is set correctly
-2. Check that the mod file exists in the `~mods` folder
+TBD
 
 For additional help or to report issues, please visit the [GitHub repository](https://github.com/v3fish/SCAMStalkerConfigurator).
