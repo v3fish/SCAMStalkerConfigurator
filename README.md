@@ -1,12 +1,15 @@
 # Stalker Configurator Aiming & Movement (SCAM)
 
 GUI tool for S.T.A.L.K.E.R. 2: Heart of Chornobyl to configuring vaulting, movement, and aiming parameters.
+This tool makes changes to the Player only and uses a different approach that doesn't directly modify ObjPrototypes.cfg,
+so any mod that changes ObjPrototypes.cfg it will be compatible.
 
 - Easy-to-use interface for adjusting movement and aiming settings
 - Save and load custom presets
 - Built-in recommended configurations
 - Automatic mod creation and installation
 - Mouse smoothing/acceleration removal utility
+- Compatible with everything (so far)
 
 [![Nexus Mods](https://img.shields.io/badge/Nexus%20Mods-SCAM-orange)](YOUR_NEXUS_MOD_URL_HERE)
 
