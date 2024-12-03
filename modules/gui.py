@@ -143,7 +143,7 @@ class MovementConfigEditor:
         force_defaults_check.pack(side='left', padx=5)
         
         ttk.Label(advanced_frame, 
-                 text="Advanced: Include all default values in mod file. Use only if you need to prevent other mods from changing specific values.",
+                 text="Advanced: Include all default values in mod file. Use only if you need to prevent other mods from changing specific values from default.",
                  font=('Arial', 8, 'italic')).pack(side='left', padx=5)
 
     def setup_main_content(self):
@@ -276,7 +276,7 @@ class MovementConfigEditor:
             if not messagebox.askyesno("Confirm Force Defaults", 
                                      "Force Default Values is enabled. This will include ALL values in the mod file, " +
                                      "including unchanged ones. This is an advanced option that should only be used " +
-                                     "if you need to prevent other mods from changing specific values.\n\n" +
+                                     "if you need to prevent other mods from changing default values.\n\n" +
                                      "Are you sure you want to continue?"):
                 return
 

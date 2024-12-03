@@ -37,23 +37,31 @@ class ConfigInterface:
     def setup_game_dir_frame(self, frame):
         dir_frame = ttk.Frame(frame)
         dir_frame.pack(fill='x', padx=5, pady=5)
-    
+
+        # Add note about automatic installation
+        note_frame = ttk.Frame(dir_frame)  
+        note_frame.pack(fill='x', pady=(0, 5))
+        
+        ttk.Label(note_frame, text="Set a game directory if you want to use the automatic mod install:",
+                 font=('Arial', 8)).pack(side='left')
+
+        # Example paths frame    
         label_frame = ttk.Frame(dir_frame)
         label_frame.pack(fill='x', pady=(0, 5))
-    
+
         ttk.Label(label_frame, text="Example paths:", font=('Arial', 8)).pack(side='left')
         ttk.Label(label_frame, text="Steam: C:\\Program Files (x86)\\Steam\\steamapps\\common\\S.T.A.L.K.E.R. 2 Heart of Chornobyl", 
                 font=('Arial', 8)).pack(side='left', padx=5)
         ttk.Label(label_frame, text="Xbox: C:\\XboxGames\\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\\Content",
                 font=('Arial', 8)).pack(side='left', padx=5)
-    
+
         input_frame = ttk.Frame(dir_frame)
         input_frame.pack(fill='x')
-    
+
         ttk.Label(input_frame, text="Game Directory:").pack(side='left', padx=5)
         self.dir_entry = ttk.Entry(input_frame, textvariable=self.game_dir, width=55)
         self.dir_entry.pack(side='left', padx=5, fill='x', expand=True)
-    
+
         ttk.Button(input_frame, text="Browse", command=self.browse_directory).pack(side='left', padx=5)
         ttk.Button(input_frame, text="Open Mod Directory", command=self.open_game_directory).pack(side='left', padx=5)
 
