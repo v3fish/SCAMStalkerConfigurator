@@ -89,7 +89,5 @@ If the mod doesn't appear to be working:
 
 1. Verify the game directory is set correctly
 2. Check that the mod file exists in the `~mods` folder
-3. Ensure no other mods are overriding the same settings
-4. Try removing the mod and creating it again
 
 For additional help or to report issues, please visit the [GitHub repository](https://github.com/v3fish/SCAMStalkerConfigurator).
