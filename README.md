@@ -1,6 +1,6 @@
 # Stalker Configurator Aiming & Movement (SCAM)
 
-GUI tool for configuring vaulting, movement, and aiming parameters in S.T.A.L.K.E.R. 2: Heart of Chornobyl.
+GUI tool for S.T.A.L.K.E.R. 2: Heart of Chornobyl to configuring vaulting, movement, and aiming parameters.
 
 - Easy-to-use interface for adjusting movement and aiming settings
 - Save and load custom presets
