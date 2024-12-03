@@ -8,7 +8,7 @@ GUI tool for S.T.A.L.K.E.R. 2: Heart of Chornobyl to configuring vaulting, movem
 - Automatic mod creation and installation
 - Mouse smoothing/acceleration removal utility
 
-[![Nexus Mods](https://img.shields.io/badge/Nexus%20Mods-SCAM-orange)](YOUR_NEXUS_MOD_URL_HERE)
+[![Nexus Mods](https://img.shields.io/badge/Nexus%20Mods-SCAM%20-%20Stalker%20Configurator%20Aiming%20%26%20Movement-orange)](YOUR_NEXUS_MOD_URL_HERE)
 
 ## Download
 
