@@ -77,10 +77,11 @@ Full license texts can be found in the `repak` directory of this distribution.
 
 ## Mod Installation Location
 
-Mods are automatically installed to:
+If configured Mods are automatically installed to:
 ```
+Example Directories
 Steam: <Game Directory>\Stalker2\Content\Paks\~mods
-Xbox: <Game Directory>\Stalker2\Content\Paks\~mods
+Xbox Game Pass: <Game Directory>\Stalker2\Content\Paks\~mods
 ```
 
 ## Troubleshooting
