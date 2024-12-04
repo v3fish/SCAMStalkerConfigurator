@@ -100,4 +100,7 @@ Xbox Game Pass: <Game Directory>\Stalker2\Content\Paks\~mods
 
 TBD
 
-For additional help or to report issues, please visit the [GitHub repository](https://github.com/v3fish/SCAMStalkerConfigurator).
+For additional help or to report issues, please visit:
+- [Nexus Mods Page](YOUR_NEXUS_MOD_URL_HERE) (Post in the comments section or bug reports)
+
+Note: For GitHub issues relating to the source code itself, you can use the [GitHub repository](https://github.com/v3fish/SCAMStalkerConfigurator).
