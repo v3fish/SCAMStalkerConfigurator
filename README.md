@@ -12,7 +12,7 @@ so every mod should be compatible.
 - 1:1 XY Sensitivity Fix Included
 - Compatible with everything (so far)
 
-[![Nexus Mods](https://img.shields.io/badge/Nexus%20Mods-SCAM-orange)](YOUR_NEXUS_MOD_URL_HERE)
+[![Nexus Mods](https://img.shields.io/badge/Nexus%20Mods-SCAM-orange)](https://www.nexusmods.com/stalker2heartofchornobyl/mods/672)
 
 ## Download
 
