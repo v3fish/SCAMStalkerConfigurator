@@ -9,7 +9,7 @@ so every mod should be compatible.
 - Built-in recommended configurations
 - Automatic mod creation and installation
 - Mouse smoothing/acceleration removal utility
-- 1:1 XY Sensitivity Fix
+- 1:1 XY Sensitivity Fix Included
 - Compatible with everything (so far)
 
 [![Nexus Mods](https://img.shields.io/badge/Nexus%20Mods-SCAM-orange)](YOUR_NEXUS_MOD_URL_HERE)
