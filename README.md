@@ -17,7 +17,7 @@ so every mod should be compatible.
 ## Download
 
 You can download SCAM from either:
-- [Nexus Mods](YOUR_NEXUS_MOD_URL_HERE) (Recommended - Download and Endorse :))
+- [Nexus Mods](https://www.nexusmods.com/stalker2heartofchornobyl/mods/672) (Recommended - Download and Endorse :))
 - [GitHub Releases](https://github.com/v3fish/SCAMStalkerConfigurator/releases)
 
 ## Usage
