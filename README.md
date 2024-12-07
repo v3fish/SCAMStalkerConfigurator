@@ -13,6 +13,7 @@ so every mod should be compatible.
 - Compatible with everything (so far)
 
 [![Nexus Mods](https://img.shields.io/badge/Nexus%20Mods-SCAM-orange)](https://www.nexusmods.com/stalker2heartofchornobyl/mods/672)
+
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/R5R21752O5)
 
 ## Download
