@@ -126,7 +126,11 @@ class MovementConfigEditor:
                                        command=self.remove_mod)
         
         # Update button states
+        self.config_interface.update_mod_status()
         self.update_mod_buttons()
+        
+        # Add trace to game_dir for button updates
+        self.config_interface.game_dir.trace_add('write', lambda *args: self.update_mod_buttons())
         
         style = ttk.Style()
         style.configure('Big.TButton', font=('Arial', 10, 'bold'))
@@ -141,11 +145,10 @@ class MovementConfigEditor:
         self.update_mod_btn.pack_forget()
         self.remove_mod_btn.pack_forget()
         
-        # Update mod status
+        # Get fresh mod status
         self.config_interface.update_mod_status()
         
         if self.config_interface.game_dir.get() and self.config_interface.validate_game_directory(self.config_interface.game_dir.get(), show_error=False):
-            # If game directory is set and valid
             if self.config_interface.mod_exists:
                 # Show Update and Remove buttons
                 self.update_mod_btn.pack(side='right', padx=5, ipady=5, ipadx=10)

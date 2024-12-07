@@ -16,32 +16,53 @@ class ConfigInterface:
         self.dir_entry = None
         self.mouse_btn = None
         self.mod_exists = False
+        
+        # Add trace to game_dir
+        self.game_dir.trace_add('write', self._on_game_dir_change)
+        
         self.load_saved_directory()
-        self.update_mod_status()
+
+    def _on_game_dir_change(self, *args):
+        """Called whenever game_dir StringVar changes"""
+        path = self.game_dir.get()
+        if path and os.path.exists(path) and os.path.exists(os.path.join(path, "Stalker2")):
+            self._check_mod_exists()
+            # Notify parent GUI to update buttons
+            if hasattr(self.parent, 'update_mod_buttons'):
+                self.parent.update_mod_buttons()
+
+    def _check_mod_exists(self):
+        """Internal method to check if mod exists"""
+        self.mod_exists = False
+        path = self.game_dir.get()
+        if path and os.path.exists(path) and os.path.exists(os.path.join(path, "Stalker2")):
+            mods_path = os.path.join(path, "Stalker2", "Content", "Paks", "~mods")
+            mod_file = os.path.join(mods_path, 'z_SCAMMovementAiming_P.pak')
+            self.mod_exists = os.path.exists(mod_file)
 
     def update_mod_status(self):
-        """Check if mod exists in game directory"""
-        self.mod_exists = False
-        
-        # Only check for mod if game directory is set and valid
-        if self.game_dir.get() and self.validate_game_directory(self.game_dir.get(), show_error=False):
-            mods_path = os.path.join(self.game_dir.get(), "Stalker2", "Content", "Paks", "~mods")
-            self.mod_exists = os.path.exists(os.path.join(mods_path, 'z_SCAMMovementAiming_P.pak'))
+        """Public method to check mod status"""
+        self._check_mod_exists()
 
-    def remove_mod(self):
-        """Remove the mod file"""
-        try:
-            if self.game_dir.get() and self.validate_game_directory(self.game_dir.get(), show_error=False):
-                mods_path = os.path.join(self.game_dir.get(), "Stalker2", "Content", "Paks", "~mods")
-                mod_file = os.path.join(mods_path, 'z_SCAMMovementAiming_P.pak')
-                if os.path.exists(mod_file):
-                    os.remove(mod_file)
-                    self.mod_exists = False
-                    return True
+    def validate_game_directory(self, path, show_error=True):
+        """Validate directory"""
+        if not path:
             return False
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to remove mod: {str(e)}")
-            return False
+            
+        valid = os.path.exists(path) and os.path.exists(os.path.join(path, "Stalker2"))
+        
+        if valid:
+            self._check_mod_exists()
+        
+        if show_error and not valid:
+            messagebox.showerror("Error", 
+                "Invalid Stalker 2 directory!\n\n"
+                "Directory should contain 'Stalker2' folder.\n\n"
+                "Example paths:\n"
+                "Steam: C:\\Program Files (x86)\\Steam\\steamapps\\common\\S.T.A.L.K.E.R. 2 Heart of Chornobyl\n"
+                "Xbox: C:\\XboxGames\\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\\Content")
+        
+        return valid
 
     def load_saved_directory(self):
         try:
@@ -51,6 +72,8 @@ class ConfigInterface:
                 saved_dir = config['Directory']['path']
                 if saved_dir and os.path.exists(saved_dir):
                     self.game_dir.set(saved_dir)
+                    # Initial mod check
+                    self._check_mod_exists()
         except:
             pass
 
@@ -97,22 +120,6 @@ class ConfigInterface:
                 self.game_dir.set(dir_path)
                 self.save_directory(dir_path)
 
-    def validate_game_directory(self, path, show_error=True):
-        if not path:
-            return False
-            
-        valid = os.path.exists(path) and os.path.exists(os.path.join(path, "Stalker2"))
-        
-        if show_error and not valid:
-            messagebox.showerror("Error", 
-                "Invalid Stalker 2 directory!\n\n"
-                "Directory should contain 'Stalker2' folder.\n\n"
-                "Example paths:\n"
-                "Steam: C:\\Program Files (x86)\\Steam\\steamapps\\common\\S.T.A.L.K.E.R. 2 Heart of Chornobyl\n"
-                "Xbox: C:\\XboxGames\\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\\Content")
-        
-        return valid
-
     def open_game_directory(self):
         if not self.game_dir.get():
             if messagebox.askyesno("No Directory Set", 
@@ -143,6 +150,21 @@ class ConfigInterface:
             os.makedirs(mods_path)
             
         return (False, mods_path)
+
+    def remove_mod(self):
+        """Remove the mod file"""
+        try:
+            if self.game_dir.get() and self.validate_game_directory(self.game_dir.get(), show_error=False):
+                mods_path = os.path.join(self.game_dir.get(), "Stalker2", "Content", "Paks", "~mods")
+                mod_file = os.path.join(mods_path, 'z_SCAMMovementAiming_P.pak')
+                if os.path.exists(mod_file):
+                    os.remove(mod_file)
+                    self.mod_exists = False
+                    return True
+            return False
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to remove mod: {str(e)}")
+            return False
 
     def get_mouse_smoothing_state(self):
         config_paths = [
