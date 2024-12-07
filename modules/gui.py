@@ -54,7 +54,7 @@ class MovementConfigEditor:
     def __init__(self):
         self.window = tk.Tk()
         self.window.title(f"SCAM - Stalker Configurator Aiming & Movement v{VERSION}")
-        self.window.geometry("1000x850")
+        self.window.geometry("1000x870")
 
         if getattr(sys, 'frozen', False):
             self.base_path = sys._MEIPASS
@@ -89,7 +89,7 @@ class MovementConfigEditor:
         
         credits_label = ttk.Label(credits_frame, 
                                 text=f"Made by v3fish | Credits: repak.exe by github.com/trumank | Version: {VERSION}",
-                                font=('Arial', 8, 'italic bold'))  # Changed font to include bold
+                                font=('Arial', 8, 'italic bold'))
         credits_label.pack(side='right')
 
     def setup_top_frame(self):
@@ -113,14 +113,49 @@ class MovementConfigEditor:
         ttk.Button(preset_frame, text="New Preset", command=self.new_preset).pack(side='left', padx=5)
         ttk.Button(preset_frame, text="Open Presets Folder", command=self.open_presets_folder).pack(side='left', padx=5)
         
-        create_mod_btn = ttk.Button(preset_frame, text="Create Mod", command=self.create_mod, style='Big.TButton')
-        create_mod_btn.pack(side='right', padx=5, ipady=5, ipadx=10)
+        # Create buttons frame for mod-related buttons
+        self.mod_buttons_frame = ttk.Frame(preset_frame)
+        self.mod_buttons_frame.pack(side='right', padx=5)
+        
+        # Create mod buttons with initial state
+        self.create_mod_btn = ttk.Button(self.mod_buttons_frame, text="Create Mod", 
+                                       command=self.create_mod, style='Big.TButton')
+        self.update_mod_btn = ttk.Button(self.mod_buttons_frame, text="Update Mod", 
+                                       command=self.create_mod, style='Big.TButton')
+        self.remove_mod_btn = ttk.Button(self.mod_buttons_frame, text="Remove Mod",
+                                       command=self.remove_mod)
+        
+        # Update button states
+        self.update_mod_buttons()
         
         style = ttk.Style()
         style.configure('Big.TButton', font=('Arial', 10, 'bold'))
 
         if os.path.exists('Presets'):
             self.load_presets()
+
+    def update_mod_buttons(self):
+        """Update the visibility and state of mod-related buttons"""
+        # Remove all buttons first
+        self.create_mod_btn.pack_forget()
+        self.update_mod_btn.pack_forget()
+        self.remove_mod_btn.pack_forget()
+        
+        # Update mod status
+        self.config_interface.update_mod_status()
+        
+        if self.config_interface.game_dir.get() and self.config_interface.validate_game_directory(self.config_interface.game_dir.get(), show_error=False):
+            # If game directory is set and valid
+            if self.config_interface.mod_exists:
+                # Show Update and Remove buttons
+                self.update_mod_btn.pack(side='right', padx=5, ipady=5, ipadx=10)
+                self.remove_mod_btn.pack(side='right', padx=5)
+            else:
+                # Show Create button
+                self.create_mod_btn.pack(side='right', padx=5, ipady=5, ipadx=10)
+        else:
+            # If no game directory, only show Create button
+            self.create_mod_btn.pack(side='right', padx=5, ipady=5, ipadx=10)
 
     def setup_recommended_presets(self, parent):
         recommended_frame = ttk.Frame(parent)
@@ -214,8 +249,9 @@ class MovementConfigEditor:
         os.startfile(presets_path)
 
     def new_preset(self):
-        if self.config_interface.has_invalid_entries():
-            messagebox.showerror("Error", "Please verify all values are correct!")
+        has_invalid, invalid_values = self.config_interface.has_invalid_entries()
+        if has_invalid:
+            messagebox.showerror("Error", "Please verify all values are correct!\n\nDetails:\n" + "\n".join(invalid_values))
             return
             
         if not self.config_interface.has_changes():
@@ -244,8 +280,9 @@ class MovementConfigEditor:
             self.new_preset()
             return
             
-        if self.config_interface.has_invalid_entries():
-            messagebox.showerror("Error", "Please verify all values are correct!")
+        has_invalid, invalid_values = self.config_interface.has_invalid_entries()
+        if has_invalid:
+            messagebox.showerror("Error", "Please verify all values are correct!\n\nDetails:\n" + "\n".join(invalid_values))
             return
             
         if not self.config_interface.has_changes():
@@ -259,9 +296,21 @@ class MovementConfigEditor:
         self.config_handler.save_ini_file(config, f'Presets/{self.preset_var.get()}.ini')
         messagebox.showinfo("Success", "Preset saved successfully!")
 
+    def remove_mod(self):
+        """Handle mod removal"""
+        if not messagebox.askyesno("Confirm Removal", 
+                                 "Are you sure you want to remove the mod?"):
+            return
+            
+        if self.config_interface.remove_mod():
+            self.update_mod_buttons()
+            messagebox.showinfo("Success", "Mod removed successfully!")
+
     def create_mod(self):
-        if self.config_interface.has_invalid_entries():
-            messagebox.showerror("Error", "Please verify all values are correct!")
+        has_invalid, invalid_values = self.config_interface.has_invalid_entries()
+        if has_invalid:
+            messagebox.showerror("Invalid Values", 
+                "The following issues need to be fixed:\n\n" + "\n".join(invalid_values))
             return
 
         if not self.config_interface.has_changes() and not self.force_defaults.get():
@@ -284,8 +333,16 @@ class MovementConfigEditor:
         try:
             is_local, mod_path = mods_check
             self.mod_creator.create_mod(config, mod_path)
-            messagebox.showinfo("Success", "Mod created successfully!" + 
-                              ("\nThe mod has been created in the current folder." if is_local else ""))
+            
+            # Update buttons after successful creation
+            self.config_interface.update_mod_status()
+            self.update_mod_buttons()
+            
+            if self.config_interface.mod_exists and self.config_interface.game_dir.get():
+                messagebox.showinfo("Success", "Mod updated successfully!")
+            else:
+                messagebox.showinfo("Success", "Mod created successfully!" + 
+                                  ("\nThe mod has been created in the current folder." if is_local else ""))
         except Exception as e:
             messagebox.showerror("Error", f"Failed to create mod: {str(e)}")
 

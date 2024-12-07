@@ -14,7 +14,34 @@ class ConfigInterface:
         self.sync_sensitivity = tk.BooleanVar(value=False)
         self.game_dir = tk.StringVar()
         self.dir_entry = None
+        self.mouse_btn = None
+        self.mod_exists = False
         self.load_saved_directory()
+        self.update_mod_status()
+
+    def update_mod_status(self):
+        """Check if mod exists in game directory"""
+        self.mod_exists = False
+        
+        # Only check for mod if game directory is set and valid
+        if self.game_dir.get() and self.validate_game_directory(self.game_dir.get(), show_error=False):
+            mods_path = os.path.join(self.game_dir.get(), "Stalker2", "Content", "Paks", "~mods")
+            self.mod_exists = os.path.exists(os.path.join(mods_path, 'z_SCAMMovementAiming_P.pak'))
+
+    def remove_mod(self):
+        """Remove the mod file"""
+        try:
+            if self.game_dir.get() and self.validate_game_directory(self.game_dir.get(), show_error=False):
+                mods_path = os.path.join(self.game_dir.get(), "Stalker2", "Content", "Paks", "~mods")
+                mod_file = os.path.join(mods_path, 'z_SCAMMovementAiming_P.pak')
+                if os.path.exists(mod_file):
+                    os.remove(mod_file)
+                    self.mod_exists = False
+                    return True
+            return False
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to remove mod: {str(e)}")
+            return False
 
     def load_saved_directory(self):
         try:
@@ -28,7 +55,7 @@ class ConfigInterface:
             pass
 
     def save_directory(self, directory):
-        if directory:  # Only save if directory is not empty
+        if directory:
             config = configparser.ConfigParser()
             config['Directory'] = {'path': directory}
             with open('stalker_location.ini', 'w') as f:
@@ -38,14 +65,12 @@ class ConfigInterface:
         dir_frame = ttk.Frame(frame)
         dir_frame.pack(fill='x', padx=5, pady=5)
 
-        # Add note about automatic installation
-        note_frame = ttk.Frame(dir_frame)  
+        note_frame = ttk.Frame(dir_frame)
         note_frame.pack(fill='x', pady=(0, 5))
         
         ttk.Label(note_frame, text="Set a game directory if you want to use the automatic mod install:",
                  font=('Arial', 8)).pack(side='left')
 
-        # Example paths frame    
         label_frame = ttk.Frame(dir_frame)
         label_frame.pack(fill='x', pady=(0, 5))
 
@@ -107,7 +132,6 @@ class ConfigInterface:
         if not self.game_dir.get():
             if messagebox.askyesno("Create Mod Locally", 
                 "No game directory set. Would you like to create the mod in the current folder instead?"):
-                # Return a tuple indicating local creation should be used
                 return (True, os.getcwd())
             return False
             
@@ -119,6 +143,96 @@ class ConfigInterface:
             os.makedirs(mods_path)
             
         return (False, mods_path)
+
+    def get_mouse_smoothing_state(self):
+        config_paths = [
+            os.path.join(os.getenv('LOCALAPPDATA'), 'Stalker2', 'Saved', 'Config', 'Windows', 'Input.ini'),
+            os.path.join(os.getenv('LOCALAPPDATA'), 'Stalker2', 'Saved', 'Config', 'WinGDK', 'Input.ini')
+        ]
+        
+        for path in config_paths:
+            if os.path.exists(path):
+                try:
+                    with open(path, 'r') as f:
+                        content = f.read()
+                        if '[/Script/Engine.InputSettings]' in content:
+                            if 'bEnableMouseSmoothing=True' in content:
+                                return True
+                            elif 'bEnableMouseSmoothing=False' in content:
+                                return False
+                except:
+                    pass
+        return True
+
+    def get_mouse_smoothing_button_text(self):
+        return "Remove Mouse Smoothing" if self.get_mouse_smoothing_state() else "Re-Enable Mouse Smoothing"
+
+    def toggle_mouse_smoothing(self):
+        config_paths = [
+            os.path.join(os.getenv('LOCALAPPDATA'), 'Stalker2', 'Saved', 'Config', 'Windows'),
+            os.path.join(os.getenv('LOCALAPPDATA'), 'Stalker2', 'Saved', 'Config', 'WinGDK')
+        ]
+        
+        input_ini_found = False
+        current_state = self.get_mouse_smoothing_state()
+        new_state = not current_state
+        
+        for path in config_paths:
+            if not os.path.exists(path):
+                continue
+                
+            input_ini_path = os.path.join(path, 'Input.ini')
+            if os.path.exists(input_ini_path):
+                try:
+                    with open(input_ini_path, 'r') as f:
+                        content = f.read()
+                    
+                    if '[/Script/Engine.InputSettings]' not in content:
+                        content += '\n[/Script/Engine.InputSettings]\n'
+                    
+                    if 'bEnableMouseSmoothing=' in content:
+                        content = content.replace('bEnableMouseSmoothing=True', 
+                                               f'bEnableMouseSmoothing={str(new_state)}')
+                        content = content.replace('bEnableMouseSmoothing=False', 
+                                               f'bEnableMouseSmoothing={str(new_state)}')
+                    else:
+                        content += f'bEnableMouseSmoothing={str(new_state)}\n'
+                    
+                    with open(input_ini_path, 'w') as f:
+                        f.write(content)
+                    
+                    self.mouse_btn.configure(text=self.get_mouse_smoothing_button_text())
+                    messagebox.showinfo("Success", 
+                        f"Mouse smoothing has been {'enabled' if new_state else 'disabled'}")
+                    input_ini_found = True
+                    break
+                    
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to update Input.ini: {str(e)}")
+                    break
+        
+        if not input_ini_found:
+            self.create_default_input_ini(new_state)
+
+    def create_default_input_ini(self, smoothing_enabled):
+        try:
+            content = "[/Script/Engine.InputSettings]\n"
+            content += f"bEnableMouseSmoothing={str(smoothing_enabled)}\n"
+            
+            with open('Input.ini', 'w') as f:
+                f.write(content)
+                
+            instructions = (
+                "An Input.ini file has been created in the current folder.\n\n"
+                "Please copy this Input.ini file to one of these locations:\n"
+                "• Steam: %LOCALAPPDATA%\\Stalker2\\Saved\\Config\\Windows\n"
+                "• Xbox: %LOCALAPPDATA%\\Stalker2\\Saved\\Config\\WinGDK\n\n"
+                "Note: You may need to create these folders if they don't exist."
+            )
+            messagebox.showinfo("Instructions", instructions)
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to create Input.ini: {str(e)}")
 
     def setup_section_frame(self, frame, section):
         row = 0
@@ -177,19 +291,15 @@ class ConfigInterface:
             self.add_value_labels(frame, 'MovementParams', key, value, row)
 
     def setup_aiming_section(self, frame):
-        # Create controls frame at the top
         controls_frame = ttk.Frame(frame)
         controls_frame.grid(row=0, column=0, columnspan=4, sticky='ew', padx=5, pady=5)
         
-        # Left side frame for sync sensitivity
         left_frame = ttk.Frame(controls_frame)
         left_frame.pack(side='left')
         
-        # Right side frame for mouse smoothing button
         right_frame = ttk.Frame(controls_frame)
         right_frame.pack(side='right')
         
-        # Add sync sensitivity checkbox
         if 'Aiming' in self.config_handler.default_config and 'SyncTurnRate' in self.config_handler.default_config['Aiming']:
             self.sync_sensitivity.set(self.config_handler.default_config['Aiming']['SyncTurnRate'])
         
@@ -199,17 +309,14 @@ class ConfigInterface:
                                    command=self.sync_sensitivity_rates)
         sync_check.pack(side='left')
         
-        # Add mouse smoothing button
-        mouse_btn = ttk.Button(right_frame, 
-                             text="Remove Mouse Smoothing", 
-                             command=self.remove_mouse_smoothing)
-        mouse_btn.pack(side='right', padx=5)
+        self.mouse_btn = ttk.Button(right_frame, 
+                                  text=self.get_mouse_smoothing_button_text(),
+                                  command=self.toggle_mouse_smoothing)
+        self.mouse_btn.pack(side='right', padx=5)
         
-        # Create aiming rate controls starting at row 1
         self.create_aiming_controls(frame)
 
     def create_aiming_controls(self, frame):
-        # Start at row 1 since controls frame is at row 0
         for row, key in enumerate(['BaseTurnRate', 'BaseLookUpRate'], 1):
             ttk.Label(frame, text=key).grid(row=row, column=0, padx=5, pady=2, sticky='e')
             
@@ -222,78 +329,10 @@ class ConfigInterface:
             self.add_value_labels(frame, 'MovementParams', key, 
                                 self.config_handler.default_config['MovementParams'][key], row)
 
-    def remove_mouse_smoothing(self):
-        # Define the paths to check
-        config_paths = [
-            os.path.join(os.getenv('LOCALAPPDATA'), 'Stalker2', 'Saved', 'Config', 'Windows'),
-            os.path.join(os.getenv('LOCALAPPDATA'), 'Stalker2', 'Saved', 'Config', 'WinGDK')
-        ]
-        
-        input_ini_found = False
-        
-        # Check each path for Input.ini
-        for path in config_paths:
-            if not os.path.exists(path):
-                continue
-                
-            input_ini_path = os.path.join(path, 'Input.ini')
-            if os.path.exists(input_ini_path):
-                try:
-                    # Read existing content first to check if already disabled
-                    with open(input_ini_path, 'r') as f:
-                        content = f.read()
-                        if '[/Script/Engine.InputSettings]' in content and 'bEnableMouseSmoothing=False' in content:
-                            messagebox.showinfo("Info", 
-                                "Input.ini has already been updated to remove mouse smoothing/acceleration.")
-                            return
-
-                    if not messagebox.askyesno("Confirm", 
-                        "Would you like SCAM to update your Input.ini?"):
-                        return
-                        
-                    # Update the file if needed
-                    with open(input_ini_path, 'a+') as f:
-                        f.seek(0)
-                        content = f.read()
-                        
-                        # Only add if not already present
-                        if '[/Script/Engine.InputSettings]' not in content:
-                            f.write('\n[/Script/Engine.InputSettings]\n')
-                        if 'bEnableMouseSmoothing=False' not in content:
-                            f.write('bEnableMouseSmoothing=False\n')
-                    
-                    messagebox.showinfo("Success", 
-                        "Mouse smoothing has been disabled in Input.ini")
-                    input_ini_found = True
-                    break
-                except Exception as e:
-                    messagebox.showerror("Error", 
-                        f"Failed to update Input.ini: {str(e)}")
-                    break
-        
-        if not input_ini_found:
-            local_input_ini = os.path.join(os.path.dirname(os.path.abspath(__file__)), 
-                                         '..', 'default_ini', 'Input.ini')
-            if messagebox.askyesno("Input.ini Not Found", 
-                "Could not find or update Input.ini. Would you like to open the location " +
-                "where you need to place the Input.ini file?"):
-                try:
-                    # Copy Input.ini to current directory
-                    shutil.copy(local_input_ini, 'Input.ini')
-                    # Open the Windows config folder
-                    default_path = os.path.join(os.getenv('LOCALAPPDATA'), 
-                                              'Stalker2', 'Saved', 'Config', 'Windows')
-                    if not os.path.exists(default_path):
-                        os.makedirs(default_path)
-                    os.startfile(default_path)
-                except Exception as e:
-                    messagebox.showerror("Error", 
-                        f"Failed to copy Input.ini or open folder: {str(e)}")
-
     def sync_sensitivity_rates(self):
         if self.sync_sensitivity.get():
-            turn_value = self.entries[('MovementParams', 'BaseTurnRate')].get()
             try:
+                turn_value = self.entries[('MovementParams', 'BaseTurnRate')].get()
                 value = int(turn_value)
                 self.entries[('MovementParams', 'BaseLookUpRate')].delete(0, tk.END)
                 self.entries[('MovementParams', 'BaseLookUpRate')].insert(0, str(value))
@@ -304,59 +343,92 @@ class ConfigInterface:
     def validate_aiming_entry(self, key):
         entry = self.entries[('MovementParams', key)]
         current_value = entry.get()
+        
         try:
             value = int(current_value)
+            default_value = str(self.config_handler.default_config['MovementParams'][key])
+            
+            exceeds_max = False
             if 'MovementParams' in self.config_handler.max_values and key in self.config_handler.max_values['MovementParams']:
                 if value > self.config_handler.max_values['MovementParams'][key]:
-                    entry.configure(foreground='red')
-                    return False
-                    
+                    exceeds_max = True
+            
             if self.sync_sensitivity.get():
                 for rate_key in ['BaseTurnRate', 'BaseLookUpRate']:
-                    entry = self.entries[('MovementParams', rate_key)]
-                    default_value = str(self.config_handler.default_config['MovementParams'][rate_key])
-                    entry.delete(0, tk.END)
-                    entry.insert(0, str(value))
-                    entry.configure(foreground='green' if str(value) != default_value else 'black')
+                    other_entry = self.entries[('MovementParams', rate_key)]
+                    other_entry.delete(0, tk.END)
+                    other_entry.insert(0, str(value))
+                    other_entry.configure(foreground='red' if exceeds_max else 
+                        ('green' if str(value) != default_value else 'black'))
             else:
-                default_value = str(self.config_handler.default_config['MovementParams'][key])
-                entry.configure(foreground='green' if current_value != default_value else 'black')
+                entry.configure(foreground='red' if exceeds_max else 
+                    ('green' if current_value != default_value else 'black'))
+                    
         except ValueError:
             entry.configure(foreground='red')
 
     def validate_entry(self, section, key):
         entry = self.entries[(section, key)]
+        current_value = entry.get().strip()
         default_value = str(self.config_handler.default_config[section][key])
-        current_value = entry.get()
 
         try:
-            if not current_value:
+            if not current_value and isinstance(self.config_handler.default_config[section][key], (int, float)):
                 entry.configure(foreground='red')
                 return False
 
-            if '.' in current_value:
-                value = float(current_value)
-            else:
-                value = int(current_value)
+            if isinstance(self.config_handler.default_config[section][key], (int, float)):
+                if '.' in current_value:
+                    value = float(current_value)
+                else:
+                    value = int(current_value)
 
-            if section in self.config_handler.max_values and key in self.config_handler.max_values[section]:
-                if value > self.config_handler.max_values[section][key]:
-                    entry.configure(foreground='red')
-                    return False
+                exceeds_max = False
+                if section in self.config_handler.max_values and key in self.config_handler.max_values[section]:
+                    if value > self.config_handler.max_values[section][key]:
+                        exceeds_max = True
 
-            entry.configure(foreground='green' if str(current_value) != default_value else 'black')
+                entry.configure(foreground='red' if exceeds_max else 
+                              ('green' if current_value != default_value else 'black'))
+                return not exceeds_max
+
+            entry.configure(foreground='black')
             return True
+
         except ValueError:
             entry.configure(foreground='red')
             return False
 
     def has_invalid_entries(self):
-        return any(entry.cget('foreground') == 'red' or not entry.get() 
-                  for entry in self.entries.values())
+        invalid_values = []
+        
+        for (section, key), entry in self.entries.items():
+            current_value = entry.get().strip()
+            default_value = self.config_handler.default_config[section][key]
+            
+            if isinstance(default_value, (int, float)):
+                if not current_value:
+                    invalid_values.append(f"{section} - {key}: Cannot be empty")
+                    continue
+                    
+                try:
+                    if '.' in current_value:
+                        value = float(current_value)
+                    else:
+                        value = int(current_value)
+                        
+                    if section in self.config_handler.max_values and key in self.config_handler.max_values[section]:
+                        max_val = self.config_handler.max_values[section][key]
+                        if value > max_val:
+                            invalid_values.append(f"{section} - {key}: Value {value} exceeds maximum of {max_val}")
+                except ValueError:
+                    invalid_values.append(f"{section} - {key}: Must be a valid number")
+            
+        return bool(invalid_values), invalid_values
 
     def has_changes(self):
         for (section, key), entry in self.entries.items():
-            current_value = entry.get()
+            current_value = entry.get().strip()
             default_value = str(self.config_handler.default_config[section][key])
             if current_value != default_value:
                 return True

@@ -43,7 +43,7 @@ class ModCreator:
             
             cfg_content = self._generate_cfg_content(config)
             
-            with open(mod_path / 'SCAM.cfg', 'w') as f:
+            with open(mod_path / 'zSCAM.cfg', 'w') as f:
                 f.write(cfg_content)
             
             self._run_repak(mods_path, repak_path)
