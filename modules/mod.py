@@ -8,17 +8,50 @@ import subprocess
 import shutil
 from pathlib import Path
 import sys
+from tkinter import messagebox
 
 class ModCreator:
     def __init__(self, base_path):
         self.base_path = base_path
-        # Get the actual executable directory or script directory
         if getattr(sys, 'frozen', False):
             self.exe_dir = os.path.dirname(sys.executable)
         else:
             self.exe_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+    def find_pak_files(self, directory):
+        """Recursively find .pak files in directory and its subdirectories"""
+        pak_files = []
+        for root, _, files in os.walk(directory):
+            for file in files:
+                if file.endswith('.pak'):
+                    pak_files.append(os.path.join(root, file))
+        return pak_files
+
+    def check_incompatible_mods(self, mods_path):
+        """Check for incompatible mods in the mods directory and its subdirectories"""
+        if not os.path.exists(mods_path):
+            return
+            
+        incompatible_keywords = ['FluidMovementAim', 'FMAO']
+        found_mods = []
+        
+        pak_files = self.find_pak_files(mods_path)
+        for file_path in pak_files:
+            filename = os.path.basename(file_path)
+            if any(keyword in filename for keyword in incompatible_keywords):
+                found_mods.append(filename)
+                    
+        if found_mods:
+            message = ("It looks like you still have Fluid Movement Aiming Overhaul installed.\n\n"
+                      "Please remove these mods before playing:\n"
+                      f"{chr(10).join(found_mods)}\n\n"
+                      "Good hunting, Stalker.")
+            messagebox.showwarning("Incompatible Mods", message)
+
     def create_mod(self, config, mods_path):
+        # Check for incompatible mods first
+        self.check_incompatible_mods(mods_path)
+        
         # Only look in the correct repak folder location
         repak_path = self._find_repak()
         if not repak_path:

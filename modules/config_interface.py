@@ -172,16 +172,23 @@ class ConfigInterface:
             os.path.join(os.getenv('LOCALAPPDATA'), 'Stalker2', 'Saved', 'Config', 'WinGDK', 'Input.ini')
         ]
         
+        mouse_settings = {
+            'bViewAccelerationEnabled': 'False',
+            'bEnableMouseSmoothing': 'False'
+        }
+        
         for path in config_paths:
             if os.path.exists(path):
                 try:
                     with open(path, 'r') as f:
                         content = f.read()
                         if '[/Script/Engine.InputSettings]' in content:
-                            if 'bEnableMouseSmoothing=True' in content:
-                                return True
-                            elif 'bEnableMouseSmoothing=False' in content:
-                                return False
+                            # Check if any settings are missing or have different values
+                            for setting, value in mouse_settings.items():
+                                setting_str = f"{setting}={value}"
+                                if setting_str not in content:
+                                    return True
+                            return False
                 except:
                     pass
         return True
@@ -199,6 +206,11 @@ class ConfigInterface:
         current_state = self.get_mouse_smoothing_state()
         new_state = not current_state
         
+        mouse_settings = {
+            'bViewAccelerationEnabled': 'False',
+            'bEnableMouseSmoothing': 'False'
+        }
+        
         for path in config_paths:
             if not os.path.exists(path):
                 continue
@@ -207,28 +219,65 @@ class ConfigInterface:
             if os.path.exists(input_ini_path):
                 try:
                     with open(input_ini_path, 'r') as f:
-                        content = f.read()
+                        lines = f.readlines()
                     
-                    if '[/Script/Engine.InputSettings]' not in content:
-                        content += '\n[/Script/Engine.InputSettings]\n'
+                    new_content = []
+                    sections = {}
+                    current_section = None
                     
-                    if 'bEnableMouseSmoothing=' in content:
-                        content = content.replace('bEnableMouseSmoothing=True', 
-                                               f'bEnableMouseSmoothing={str(new_state)}')
-                        content = content.replace('bEnableMouseSmoothing=False', 
-                                               f'bEnableMouseSmoothing={str(new_state)}')
-                    else:
-                        content += f'bEnableMouseSmoothing={str(new_state)}\n'
+                    # First pass: organize content into sections
+                    for line in lines:
+                        stripped_line = line.strip()
+                        if stripped_line.startswith('['):
+                            current_section = stripped_line
+                            sections[current_section] = []
+                        elif current_section and stripped_line:
+                            if current_section == '[/Script/Engine.InputSettings]':
+                                if not any(setting in line for setting in mouse_settings.keys()):
+                                    sections[current_section].append(line)
+                            else:
+                                sections[current_section].append(line)
+                    
+                    # Second pass: reconstruct content
+                    input_settings = '[/Script/Engine.InputSettings]'
+                    
+                    # Handle InputSettings section
+                    if input_settings in sections and sections[input_settings]:
+                        new_content.append(f"{input_settings}\n")
+                        new_content.extend(sections[input_settings])
+                        if not new_state:
+                            if not new_content[-1].endswith('\n'):
+                                new_content.append('\n')
+                    elif not new_state:
+                        new_content.append(f"{input_settings}\n")
+                    
+                    # Add mouse settings if removing mouse smoothing
+                    if not new_state:
+                        for setting, value in mouse_settings.items():
+                            new_content.append(f"{setting}={value}\n")
+                    
+                    # Add other sections
+                    for section, content in sections.items():
+                        if section != input_settings:
+                            if new_content:
+                                new_content.append('\n')
+                            new_content.append(f"{section}\n")
+                            new_content.extend(content)
+                    
+                    # Remove trailing empty lines
+                    while new_content and new_content[-1].strip() == '':
+                        new_content.pop()
                     
                     with open(input_ini_path, 'w') as f:
-                        f.write(content)
+                        f.writelines(new_content)
                     
                     self.mouse_btn.configure(text=self.get_mouse_smoothing_button_text())
                     messagebox.showinfo("Success", 
-                        f"Mouse smoothing has been {'enabled' if new_state else 'disabled'}")
+                        "Mouse smoothing settings have been " + 
+                        ("removed" if new_state else "added"))
                     input_ini_found = True
                     break
-                    
+                        
                 except Exception as e:
                     messagebox.showerror("Error", f"Failed to update Input.ini: {str(e)}")
                     break
@@ -238,18 +287,51 @@ class ConfigInterface:
 
     def create_default_input_ini(self, smoothing_enabled):
         try:
-            content = "[/Script/Engine.InputSettings]\n"
-            content += f"bEnableMouseSmoothing={str(smoothing_enabled)}\n"
+            # Read existing content if file exists
+            existing_content = {}
+            if os.path.exists('Input.ini'):
+                with open('Input.ini', 'r') as f:
+                    current_section = None
+                    for line in f:
+                        line = line.strip()
+                        if line.startswith('['):
+                            current_section = line
+                            existing_content[current_section] = []
+                        elif current_section and line:
+                            if not any(setting in line for setting in ['bViewAccelerationEnabled', 'bEnableMouseSmoothing']):
+                                existing_content[current_section].append(line)
+
+            # Create new content
+            content = ""
+            engine_settings = "[/Script/Engine.InputSettings]\n"
             
+            if smoothing_enabled:
+                # Remove mouse smoothing settings
+                if existing_content.get('[/Script/Engine.InputSettings]'):
+                    engine_settings += "\n".join(existing_content['[/Script/Engine.InputSettings]']) + "\n"
+            else:
+                # Add mouse smoothing settings
+                engine_settings += "bViewAccelerationEnabled=False\n"
+                engine_settings += "bEnableMouseSmoothing=False\n"
+                if existing_content.get('[/Script/Engine.InputSettings]'):
+                    engine_settings += "\n".join(existing_content['[/Script/Engine.InputSettings]']) + "\n"
+            
+            content += engine_settings
+            
+            # Add other sections
+            for section, lines in existing_content.items():
+                if section != '[/Script/Engine.InputSettings]':
+                    content += f"\n{section}\n" + "\n".join(lines) + "\n"
+                    
             with open('Input.ini', 'w') as f:
                 f.write(content)
                 
             instructions = (
+                "SCAM couldn't locate the Stalker 2 Config location.\n\n"
                 "An Input.ini file has been created in the current folder.\n\n"
                 "Please copy this Input.ini file to one of these locations:\n"
                 "• Steam: %LOCALAPPDATA%\\Stalker2\\Saved\\Config\\Windows\n"
-                "• Xbox: %LOCALAPPDATA%\\Stalker2\\Saved\\Config\\WinGDK\n\n"
-                "Note: You may need to create these folders if they don't exist."
+                "• Xbox: %LOCALAPPDATA%\\Stalker2\\Saved\\Config\\WinGDK\n"
             )
             messagebox.showinfo("Instructions", instructions)
             
