@@ -56,7 +56,6 @@ Xbox: C:\XboxGames\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\Content
 - Quick Switching: Easily swap between different setups
 ### Mod Integration
 - Auto-Installation: Direct mod installation to your S.T.A.L.K.E.R. 2 directory
-- Conflict Detection: Warns about incompatible mods before installation
 - Advanced Options: Force default values to prevent other mods from overriding settings
 ### Multilingual Support
 - 5 Languages: English, Russian, Ukrainian, Korean, and Chinese localizations
