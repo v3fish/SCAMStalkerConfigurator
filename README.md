@@ -39,24 +39,29 @@ Xbox: C:\XboxGames\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\Content
 
 ## Features
 
-### Movement Configuration
-- Base movement speed adjustments
-- Sprint and crouch modifiers
-- Jump height configuration
-- Movement tuning
-- Vaulting adjustments
-
-### Aiming Configuration
-- Horizontal and vertical sensitivity
-- Option to sync turn/look rates
-- Mouse smoothing/acceleration removal
-- Advanced aim configuration options
-
+### Character Configuration
+- Stamina System: Adjust stamina costs for jumping, sprinting, climbing, and combat actions
+- Health & Vitals: Configure HP, stamina, bleeding, radiation, hunger, and thirst parameters
+- Regeneration Rates: Fine-tune health and stamina recovery speeds
+### Movement & Mobility
+- Vaulting System: Customize vaulting angles, distances, and obstacle height limits
+- Movement Speed: Adjust walking, crouching, and air control coefficients
+- Jump Mechanics: Configure jump heights and movement modifiers
+### Aiming & Controls
+- Mouse Sensitivity: Fine-tune horizontal and vertical look rates
+- Input Enhancement: Remove mouse smoothing and acceleration for precise aiming
+- Sync Option: Synchronize turn and look rates for consistent sensitivity
 ### Preset Management
-- Save custom configurations
-- Load built-in recommended presets
-- Import/export settings
-- Quick switching between configurations
+- Built-in Presets: Access Default, V3Fish Recommended, and XY Sensitivity Fix configurations
+- Custom Presets: Save and load your personal configuration profiles
+- Quick Switching: Easily swap between different setups
+### Mod Integration
+- Auto-Installation: Direct mod installation to your S.T.A.L.K.E.R. 2 directory
+- Conflict Detection: Warns about incompatible mods before installation
+- Advanced Options: Force default values to prevent other mods from overriding settings
+### Multilingual Support
+- 5 Languages: English, Russian, Ukrainian, Korean, and Chinese localizations
+- Easy Switching: Change language from within the application
 
 ## Third-Party Components
 
