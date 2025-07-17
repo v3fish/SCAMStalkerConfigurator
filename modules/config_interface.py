@@ -4,7 +4,7 @@ from tkinter import ttk, messagebox, filedialog
 import os
 import configparser
 import shutil
-from .localization.language_manager import get_current_localization, t
+from .localization.language_manager import get_current_localization, t, font
 
 class ConfigInterface:
     def __init__(self, parent, config_handler):
@@ -266,9 +266,9 @@ class ConfigInterface:
                 is_default = current_value == default_value
                 # Boolean values can't be invalid, so just green if changed, black if default
                 if is_default:
-                    label.configure(foreground='black', font=('Arial', 9, 'bold'))
+                    label.configure(foreground='black', font=font('bold'))
                 else:
-                    label.configure(foreground='green', font=('Arial', 9, 'bold'))
+                    label.configure(foreground='green', font=font('bold'))
         else:
             if (section, key) in self.entries:
                 current_value = self.entries[(section, key)].get().strip()
@@ -296,11 +296,11 @@ class ConfigInterface:
                 
                 # Set label color based on validity and whether it's changed
                 if is_invalid:
-                    label.configure(foreground='red', font=('Arial', 9, 'bold'))
+                    label.configure(foreground='red', font=font('bold'))
                 elif is_default:
-                    label.configure(foreground='black', font=('Arial', 9, 'bold'))
+                    label.configure(foreground='black', font=font('bold'))
                 else:
-                    label.configure(foreground='green', font=('Arial', 9, 'bold'))
+                    label.configure(foreground='green', font=font('bold'))
 
     def _on_game_dir_change(self, *args):
         """Called whenever game_dir StringVar changes"""
@@ -380,17 +380,17 @@ class ConfigInterface:
         
         loc = get_current_localization()
         ttk.Label(note_frame, text=loc.get_label("set_game_directory_note"),
-                 font=('Arial', 8)).pack(side='left', padx=5)
+                 font=font('small')).pack(side='left', padx=5)
         
         # Example paths
         label_frame = ttk.Frame(dir_frame)
         label_frame.pack(fill='x', pady=2)
         
-        ttk.Label(label_frame, text=loc.get_label("example_paths"), font=('Arial', 8)).pack(side='left')
+        ttk.Label(label_frame, text=loc.get_label("example_paths"), font=font('small')).pack(side='left')
         ttk.Label(label_frame, text=loc.get_label("steam_path"),
-                 font=('Arial', 8)).pack(side='left', padx=5)
+                 font=font('small')).pack(side='left', padx=5)
         ttk.Label(label_frame, text=loc.get_label("xbox_path"),
-                 font=('Arial', 8)).pack(side='left', padx=5)
+                 font=font('small')).pack(side='left', padx=5)
         
         # Directory input
         input_frame = ttk.Frame(dir_frame)
@@ -646,7 +646,7 @@ class ConfigInterface:
     def setup_section_frame(self, frame, section):
         row = 0
         for key, value in self.config_handler.default_config[section].items():
-            label = ttk.Label(frame, text=key, font=('Arial', 9, 'bold'))
+            label = ttk.Label(frame, text=key, font=font('bold'))
             label.grid(row=row, column=0, padx=5, pady=2, sticky='e')
             self.labels[(section, key)] = label  # Store label reference
             
@@ -683,18 +683,18 @@ class ConfigInterface:
                 default_text = loc.get_label('default_on')
             else:
                 default_text = loc.get_label('default_off')
-            ttk.Label(frame, text=default_text, font=('Arial', 8)).grid(
+            ttk.Label(frame, text=default_text, font=font('small')).grid(
                 row=row, column=3, padx=5, pady=2, sticky='w')
         else:
             # For non-boolean values, show the actual value
             default_text = loc.get_label('default_value', value=value)
             if section in self.config_handler.max_values and key in self.config_handler.max_values[section]:
                 default_text += f" | {loc.get_label('max_value', max=self.config_handler.max_values[section][key])}"
-            ttk.Label(frame, text=default_text, font=('Arial', 8)).grid(
+            ttk.Label(frame, text=default_text, font=font('small')).grid(
                 row=row, column=3, padx=5, pady=2, sticky='w')
         
         if section in self.config_handler.descriptions and key in self.config_handler.descriptions[section]:
-            ttk.Label(frame, text=self.config_handler.descriptions[section][key], font=('Arial', 8)).grid(
+            ttk.Label(frame, text=self.config_handler.descriptions[section][key], font=font('description')).grid(
                 row=row, column=4, padx=5, pady=2, sticky='w')
 
     def setup_movement_frame(self, frame):
@@ -705,7 +705,7 @@ class ConfigInterface:
                 row += 1
 
     def create_movement_control(self, frame, key, value, row):
-        label = ttk.Label(frame, text=key, font=('Arial', 9, 'bold'))
+        label = ttk.Label(frame, text=key, font=font('bold'))
         label.grid(row=row, column=0, padx=5, pady=2, sticky='e')
         self.labels[('MovementParams', key)] = label  # Store label reference
         
@@ -762,7 +762,7 @@ class ConfigInterface:
 
     def create_aiming_controls(self, frame):
         for row, key in enumerate(['BaseTurnRate', 'BaseLookUpRate'], 1):
-            label = ttk.Label(frame, text=key, font=('Arial', 9, 'bold'))
+            label = ttk.Label(frame, text=key, font=font('bold'))
             label.grid(row=row, column=0, padx=5, pady=2, sticky='e')
             self.labels[('MovementParams', key)] = label  # Store label reference
             

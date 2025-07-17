@@ -6,7 +6,7 @@ import os
 from .config import ConfigHandler
 from .mod import ModCreator
 from .config_interface import ConfigInterface
-from .localization.language_manager import LanguageManager, get_current_localization, t, error, success, warning, confirm
+from .localization.language_manager import LanguageManager, get_current_localization, t, error, success, warning, confirm, font
 # Removed updater import to eliminate network functionality and potential AV false positives
 from . import VERSION
 
@@ -131,7 +131,7 @@ class MovementConfigEditor:
         loc = get_current_localization()
         credits_label = ttk.Label(credits_frame, 
                                 text=loc.get_credits_text(VERSION),
-                                font=('Arial', 8, 'italic bold'))
+                                font=font('small_italic_bold'))
         credits_label.pack(side='right')
 
     def setup_top_frame(self):
@@ -178,8 +178,8 @@ class MovementConfigEditor:
         self.config_interface.game_dir.trace_add('write', lambda *args: self.update_mod_buttons())
         
         style = ttk.Style()
-        style.configure('Big.TButton', font=('Arial', 10, 'bold'))
-        style.configure('TNotebook.Tab', font=('Arial', 10, 'bold'), padding=[10, 4])
+        style.configure('Big.TButton', font=font('button'))
+        style.configure('TNotebook.Tab', font=font('tab'), padding=[10, 4])
 
         if os.path.exists('Presets'):
             self.load_presets()
@@ -230,7 +230,7 @@ class MovementConfigEditor:
         loc = get_current_localization()
         ttk.Label(advanced_frame, 
                  text=loc.get_label("advanced_force_defaults"),
-                 font=('Arial', 8, 'italic')).pack(side='left', padx=5)
+                 font=font('small_italic')).pack(side='left', padx=5)
 
     def setup_main_content(self):
         container = ttk.Frame(self.window)

@@ -13,6 +13,21 @@ APP_INFO = {
     "version": "Version: {version}"
 }
 
+# Font configuration for English UI
+FONTS = {
+    "default": ("Arial", 9),
+    "bold": ("Arial", 9, "bold"),
+    "small": ("Arial", 8),
+    "small_bold": ("Arial", 8, "bold"),
+    "small_italic": ("Arial", 8, "italic"),
+    "small_italic_bold": ("Arial", 8, "italic", "bold"),
+    "large": ("Arial", 10),
+    "large_bold": ("Arial", 10, "bold"),
+    "tab": ("Arial", 10, "bold"),
+    "button": ("Arial", 10, "bold"),
+    "description": ("Arial", 8)
+}
+
 # Window and dialog titles
 TITLES = {
     "new_preset": "New Preset",

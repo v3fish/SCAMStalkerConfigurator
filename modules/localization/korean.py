@@ -13,6 +13,21 @@ APP_INFO = {
     "version": "버전: {version}"
 }
 
+# Font configuration for Korean UI
+FONTS = {
+    "default": ("Malgun Gothic", 10),
+    "bold": ("Malgun Gothic", 10, "bold"),
+    "small": ("Malgun Gothic", 8),
+    "small_bold": ("Malgun Gothic", 9, "bold"),
+    "small_italic": ("Malgun Gothic", 9, "italic"),
+    "small_italic_bold": ("Malgun Gothic", 8, "italic", "bold"),
+    "large": ("Malgun Gothic", 10),
+    "large_bold": ("Malgun Gothic", 9, "bold"),
+    "tab": ("Malgun Gothic", 10, "bold"),
+    "button": ("Malgun Gothic", 10, "bold"),
+    "description": ("Malgun Gothic", 10)
+}
+
 # Window and dialog titles
 TITLES = {
     "new_preset": "새 프리셋",

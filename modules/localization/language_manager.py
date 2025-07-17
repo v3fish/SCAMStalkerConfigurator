@@ -156,7 +156,7 @@ class LanguageSelectionDialog(tk.Toplevel):
         
         # Title label
         title_label = ttk.Label(main_frame, text=loc.get_label("select_language"), 
-                               font=('Arial', 10, 'bold'))
+                               font=loc.get_font('large_bold'))
         title_label.pack(pady=(0, 10))
         
         # Language selection frame
@@ -171,7 +171,7 @@ class LanguageSelectionDialog(tk.Toplevel):
         scrollbar.pack(side='right', fill='y')
         
         self.language_listbox = tk.Listbox(listbox_frame, yscrollcommand=scrollbar.set,
-                                          font=('Arial', 10), height=4)
+                                          font=loc.get_font('large'), height=4)
         self.language_listbox.pack(side='left', fill='both', expand=True)
         scrollbar.configure(command=self.language_listbox.yview)
         
@@ -301,6 +301,12 @@ class Localization:
         """Get a status message with optional formatting"""
         text = self.lang.STATUS.get(key, key)
         return text.format(**kwargs) if kwargs else text
+        
+    def get_font(self, key):
+        """Get a font configuration"""
+        if hasattr(self.lang, 'FONTS'):
+            return self.lang.FONTS.get(key, ('Arial', 9))
+        return ('Arial', 9)  # Default font
 
 def get_current_localization():
     """Get the current localization instance"""
@@ -370,4 +376,8 @@ def warning(key, **kwargs):
 
 def confirm(key, **kwargs):
     """Quick access for confirmation messages"""
-    return get_current_localization().get_confirmation(key, **kwargs) 
+    return get_current_localization().get_confirmation(key, **kwargs)
+
+def font(key):
+    """Quick access for font configurations"""
+    return get_current_localization().get_font(key) 

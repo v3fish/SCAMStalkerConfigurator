@@ -13,6 +13,21 @@ APP_INFO = {
     "version": "Версія: {version}"
 }
 
+# Font configuration for Ukrainian UI
+FONTS = {
+    "default": ("Segoe UI", 9,),
+    "bold": ("Segoe UI", 9, "bold"),
+    "small": ("Segoe UI", 8),
+    "small_bold": ("Segoe UI", 8, "bold"),
+    "small_italic": ("Segoe UI", 8, "italic"),
+    "small_italic_bold": ("Segoe UI", 8, "italic", "bold"),
+    "large": ("Segoe UI", 10),
+    "large_bold": ("Segoe UI", 10, "bold"),
+    "tab": ("Segoe UI", 10, "bold"),
+    "button": ("Segoe UI", 10, "bold"),
+    "description": ("Segoe UI", 9)
+}
+
 # Window and dialog titles
 TITLES = {
     "new_preset": "Новий пресет",

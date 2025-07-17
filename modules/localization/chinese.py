@@ -13,6 +13,21 @@ APP_INFO = {
     "version": "版本：{version}"
 }
 
+# Font configuration for Chinese UI
+FONTS = {
+    "default": ("Microsoft YaHei", 10),
+    "bold": ("Microsoft YaHei", 10, "bold"),
+    "small": ("Microsoft YaHei", 8),
+    "small_bold": ("Microsoft YaHei", 9, "bold"),
+    "small_italic": ("Microsoft YaHei", 9, "italic"),
+    "small_italic_bold": ("Microsoft YaHei", 8, "italic", "bold"),
+    "large": ("Microsoft YaHei", 10),
+    "large_bold": ("Microsoft YaHei", 9, "bold"),
+    "tab": ("Microsoft YaHei", 10, "bold"),
+    "button": ("Microsoft YaHei", 10, "bold"),
+    "description": ("Microsoft YaHei", 10)
+}
+
 # Window and dialog titles
 TITLES = {
     "new_preset": "新建预设",
