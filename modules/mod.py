@@ -60,14 +60,21 @@ class ModCreator:
             repak_folder_path = os.path.join(self.exe_dir, 'repak')
             raise FileNotFoundError(loc.get_error("repak_not_found", repak_path=repak_folder_path))
 
+        # Create temporary build directory
+        import tempfile
+        temp_build_dir = None
+        
         try:
             # Remove old mod file if it exists (for people upgrading from old version)
             old_mod_file = os.path.join(mods_path, 'z_SCAMMovementAiming_P.pak')
             if os.path.exists(old_mod_file):
                 os.remove(old_mod_file)
             
-            # Create mod only after confirming repak exists
-            mod_path = Path('z_SCAM_P/Stalker2/Content/GameLite/GameData/ObjPrototypes')
+            # Create temporary directory for mod building
+            temp_build_dir = tempfile.mkdtemp(prefix='scam_mod_build')
+            
+            # Create mod structure in temp directory
+            mod_path = Path(temp_build_dir) / 'z_SCAM_P' / 'Stalker2' / 'Content' / 'GameLite' / 'GameData' / 'ObjPrototypes'
             mod_path.mkdir(parents=True, exist_ok=True)
             
             if 'Aiming' in config:
@@ -78,12 +85,17 @@ class ModCreator:
             with open(mod_path / 'zSCAM.cfg', 'w') as f:
                 f.write(cfg_content)
             
-            self._run_repak(mods_path, repak_path)
+            self._run_repak(mods_path, repak_path, temp_build_dir)
+            
         except Exception as e:
-            # Clean up any created folders if there's an error
-            if os.path.exists('z_SCAM_P'):
-                shutil.rmtree('z_SCAM_P')
+            # Clean up temp directory if there's an error
+            if temp_build_dir and os.path.exists(temp_build_dir):
+                shutil.rmtree(temp_build_dir)
             raise
+        finally:
+            # Always clean up temp directory
+            if temp_build_dir and os.path.exists(temp_build_dir):
+                shutil.rmtree(temp_build_dir)
 
     def _find_repak(self):
         """Find repak.exe in the correct location only"""
@@ -126,20 +138,72 @@ class ModCreator:
         content += "// Personal use only — redistribution requires author permission\n"
         return content
 
-    def _run_repak(self, mods_path, repak_path):
+    def _run_repak(self, mods_path, repak_path, temp_build_dir):
         try:
-            subprocess.run([repak_path, 'pack', 'z_SCAM_P'], check=True)
-            shutil.move('z_SCAM_P.pak', os.path.join(mods_path, 'z_SCAM_P.pak'))
-            shutil.rmtree('z_SCAM_P')
+            # Show progress dialog during repak execution
+            import tkinter as tk
+            from tkinter import ttk
+            
+            # Create progress window
+            progress_window = tk.Toplevel()
+            progress_window.title("Creating Mod")
+            progress_window.geometry("300x100")
+            progress_window.resizable(False, False)
+            progress_window.transient()
+            progress_window.grab_set()
+            
+            # Center the window
+            progress_window.update_idletasks()
+            x = (progress_window.winfo_screenwidth() // 2) - (150)
+            y = (progress_window.winfo_screenheight() // 2) - (50)
+            progress_window.geometry(f"+{x}+{y}")
+            
+            # Add content
+            ttk.Label(progress_window, text="Creating mod file, please wait...").pack(pady=15)
+            progress_bar = ttk.Progressbar(progress_window, mode='indeterminate', length=250)
+            progress_bar.pack(pady=(0, 15))
+            progress_bar.start(10)
+            
+            # Update the window to show it
+            progress_window.update()
+            
+            try:
+                # Change to temp directory for repak execution
+                original_cwd = os.getcwd()
+                os.chdir(temp_build_dir)
+                
+                # Set up subprocess parameters to hide CMD window
+                startupinfo = None
+                creationflags = 0
+                if os.name == 'nt':  # Windows
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    startupinfo.wShowWindow = subprocess.SW_HIDE
+                    creationflags = subprocess.CREATE_NO_WINDOW
+                
+                # Run repak subprocess (hidden)
+                subprocess.run([repak_path, 'pack', 'z_SCAM_P'], 
+                             check=True,
+                             startupinfo=startupinfo,
+                             creationflags=creationflags)
+                
+                # Move the created pak file to destination
+                pak_file = os.path.join(temp_build_dir, 'z_SCAM_P.pak')
+                if os.path.exists(pak_file):
+                    shutil.move(pak_file, os.path.join(mods_path, 'z_SCAM_P.pak'))
+                
+                # Restore original working directory
+                os.chdir(original_cwd)
+                
+            finally:
+                # Always close the progress window
+                progress_window.destroy()
+                
         except subprocess.CalledProcessError as e:
-            if os.path.exists('z_SCAM_P'):
-                shutil.rmtree('z_SCAM_P')
             from .localization.language_manager import get_current_localization
             loc = get_current_localization()
             raise RuntimeError(loc.get_error("failed_to_run_repak", error=str(e)))
         except Exception as e:
-            if os.path.exists('z_SCAM_P'):
-                shutil.rmtree('z_SCAM_P')
             from .localization.language_manager import get_current_localization
             loc = get_current_localization()
             raise RuntimeError(loc.get_error("error_during_mod_creation", error=str(e)))
