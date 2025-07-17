@@ -1,16 +1,15 @@
-# Stalker Configurator Aiming & Movement (SCAM)
+# Stalker Character Adjustment Manager (SCAM)
 
-GUI tool for S.T.A.L.K.E.R. 2: Heart of Chornobyl to configuring vaulting, movement, and aiming parameters.
-This tool makes changes to the Player only and uses a different approach that doesn't directly modify ObjPrototypes.cfg,
-so every mod should be compatible.
+GUI tool for S.T.A.L.K.E.R. 2: Heart of Chornobyl to configure character movement, aiming, stamina, and health parameters. This tool creates custom player configurations that override default settings without modifying core game files, ensuring compatibility with other mods.
 
-- Play how you like with a Easy-to-use interface for adjusting movement and aiming settings
+- Easy-to-use interface for adjusting character settings
 - Save and load custom presets
 - Built-in recommended configurations
 - Automatic mod creation and installation
-- Mouse smoothing/acceleration removal utility
-- 1:1 XY Sensitivity Fix Included
-- Compatible with everything (so far)
+- Mouse smoothing/acceleration removal
+- XY Sensitivity Fix included
+- Multilingual support (5 languages)
+- Compatible with other mods
 
 [![Nexus Mods](https://img.shields.io/badge/Nexus%20Mods-SCAM-orange)](https://www.nexusmods.com/stalker2heartofchornobyl/mods/672)
 
