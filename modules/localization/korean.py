@@ -154,10 +154,10 @@ Xbox: C:\\XboxGames\\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\\Content""",
 repak 폴더는 다음 위치에 있어야 합니다: {repak_path}
 
 폴더 구조:
-📁 설치 폴더
-   └─📄 Stalker Character Adjustment Manager.exe
-   └─📁 repak
-      └─📄 repak.exe""",
+설치 폴더
+   └─ Stalker Character Adjustment Manager.exe
+   └─ repak
+      └─ repak.exe""",
     "value_cannot_be_empty": "{section} - {key}: 비어있을 수 없습니다",
     "value_exceeds_maximum": "{section} - {key}: 값 {value}가 최대값 {max}를 초과합니다",
     "value_must_be_number": "{section} - {key}: 유효한 숫자여야 합니다",

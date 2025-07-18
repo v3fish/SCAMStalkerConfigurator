@@ -154,10 +154,10 @@ Please make sure the 'repak' folder exists and with repak.exe inside it.
 The repak folder should be at: {repak_path}
 
 Folder structure should be:
-📁 Your Installation Folder
-   └─📄 Stalker Character Adjustment Manager.exe
-   └─📁 repak
-      └─📄 repak.exe""",
+Your Installation Folder
+   └─ Stalker Character Adjustment Manager.exe
+   └─ repak
+      └─ repak.exe""",
     "value_cannot_be_empty": "{section} - {key}: Cannot be empty",
     "value_exceeds_maximum": "{section} - {key}: Value {value} exceeds maximum of {max}",
     "value_must_be_number": "{section} - {key}: Must be a valid number",

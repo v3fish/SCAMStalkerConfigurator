@@ -154,10 +154,10 @@ Xbox：C:\\XboxGames\\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\\Content"""
 repak 文件夹应位于：{repak_path}
 
 文件夹结构应为：
-📁 您的安装文件夹
-   └─📄 Stalker Character Adjustment Manager.exe
-   └─📁 repak
-      └─📄 repak.exe""",
+您的安装文件夹
+   └─ Stalker Character Adjustment Manager.exe
+   └─ repak
+      └─ repak.exe""",
     "value_cannot_be_empty": "{section} - {key}：不能为空",
     "value_exceeds_maximum": "{section} - {key}：值 {value} 超过最大值 {max}",
     "value_must_be_number": "{section} - {key}：必须是有效数字",
