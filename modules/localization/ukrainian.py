@@ -148,16 +148,17 @@ Xbox: C:\\XboxGames\\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\\Content""",
     "failed_to_create_input_ini": "Не вдалося створити Input.ini: {error}",
     "failed_to_run_repak": "Не вдалося запустити repak: {error}",
     "error_during_mod_creation": "Помилка при створенні мода: {error}",
-    "repak_not_found": """repak.exe не знайдено! Repak було включено в програму.
+    "repak_not_found": """repak.exe не знайдено! Repak повинен бути в папці {data_folder}/repak.
 
-Будь ласка, переконайтеся, що папка 'repak' існує і містить repak.exe.
+Будь ласка, переконайтеся, що папка '{data_folder}/repak' існує і містить repak.exe.
 Папка repak повинна бути в: {repak_path}
 
-Структура папок повинна бути:
-Ваша папка встановлення
-   └─ Stalker Character Adjustment Manager.exe
+Очікувана структура папок:
+Stalker Character Adjustment Manager.exe
+└─ {data_folder}
    └─ repak
       └─ repak.exe""",
+    "database_not_found": "default_config.db не знайдено! Будь ласка, переконайтеся, що папка {data_folder} існує і містить default_config.db.",
     "value_cannot_be_empty": "{section} - {key}: Не може бути порожнім",
     "value_exceeds_maximum": "{section} - {key}: Значення {value} перевищує максимум {max}",
     "value_must_be_number": "{section} - {key}: Повинно бути дійсним числом",

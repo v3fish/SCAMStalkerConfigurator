@@ -2,7 +2,10 @@
 import configparser
 import os
 import json
-from .localization.language_manager import get_current_localization
+import sys
+import sqlite3
+
+DATA_FOLDER_NAME = "data"
 
 class ConfigHandler:
     def __init__(self, base_path, user_data_path=None):
@@ -13,9 +16,15 @@ class ConfigHandler:
         self.descriptions = {}
         self.max_values = {}
         self.preferences_file = os.path.join(self.user_data_path, 'app_preferences.json')
+        
+        # For development fallback only - database is primary method
+        self.default_ini_path = os.path.join(base_path, 'default_ini')
+        
         self.load_default_config()
-        self.v3fish_config = self.load_ini_file(os.path.join(base_path, 'default_ini', 'v3fish_recommended.ini'))
-        self.xy_fix_config = self.load_ini_file(os.path.join(base_path, 'default_ini', 'xysensitivityfix.ini'))
+        
+        # Load v3fish and xy_fix configs from database or files
+        self.v3fish_config = self.load_config_from_db_or_file('v3fish_recommended.ini')
+        self.xy_fix_config = self.load_config_from_db_or_file('xysensitivityfix.ini')
 
     def load_preferences(self):
         """Load user preferences from JSON file"""
@@ -30,7 +39,7 @@ class ConfigHandler:
     def save_preferences(self, preferences):
         """Save user preferences to JSON file"""
         try:
-            with open(self.preferences_file, 'w') as f:
+            with open(self.preferences_file, 'w', encoding='utf-8') as f:
                 json.dump(preferences, f, indent=2)
         except:
             pass
@@ -75,6 +84,8 @@ class ConfigHandler:
         config = configparser.ConfigParser()
         config.optionxform = str
         
+
+        
         # Map language codes to INI file suffixes
         lang_to_ini_suffix = {
             'korean': 'ko',
@@ -93,25 +104,44 @@ class ConfigHandler:
             else:
                 lang_code = 'en'
                 
+
+                
             if lang_code != 'en':  # Skip for English (default)
                 # Map language code to INI suffix
                 ini_suffix = lang_to_ini_suffix.get(lang_code, lang_code)
                 
-                # Try to load language-specific INI file
+                # Try to load language-specific INI file from database first
                 lang_file = f'default_values_{ini_suffix}.ini'
-                lang_path = os.path.join(self.base_path, 'default_ini', lang_file)
+                db_content = self.load_from_database(lang_file)
                 
-                if os.path.exists(lang_path):
-                    config.read(lang_path, encoding='utf-8')
+                if db_content:
+                    config.read_string(db_content)
                 else:
-                    # Fall back to default if language file doesn't exist
-                    config.read(os.path.join(self.base_path, 'default_ini', 'default_values.ini'), encoding='utf-8')
+                    # Fall back to file loading
+                    lang_path = os.path.join(self.default_ini_path, lang_file)
+                    if os.path.exists(lang_path):
+                        config.read(lang_path, encoding='utf-8')
+                    else:
+                        # Fall back to default if language file doesn't exist
+                        default_content = self.load_from_database('default_values.ini')
+                        if default_content:
+                            config.read_string(default_content)
+                        else:
+                            config.read(os.path.join(self.default_ini_path, 'default_values.ini'), encoding='utf-8')
             else:
-                # Load default for English
-                config.read(os.path.join(self.base_path, 'default_ini', 'default_values.ini'), encoding='utf-8')
-        except:
+                # Load default for English from database first
+                default_content = self.load_from_database('default_values.ini')
+                if default_content:
+                    config.read_string(default_content)
+                else:
+                    config.read(os.path.join(self.default_ini_path, 'default_values.ini'), encoding='utf-8')
+        except Exception as e:
             # Fall back to default if any error occurs
-            config.read(os.path.join(self.base_path, 'default_ini', 'default_values.ini'), encoding='utf-8')
+            default_content = self.load_from_database('default_values.ini')
+            if default_content:
+                config.read_string(default_content)
+            else:
+                config.read(os.path.join(self.default_ini_path, 'default_values.ini'), encoding='utf-8')
         
         for section in config.sections():
             self.default_config[section] = {}
@@ -148,6 +178,57 @@ class ConfigHandler:
                 if description:
                     self.descriptions[section][key] = description
 
+    def load_config_from_db_or_file(self, filename):
+        """Load config from database if available, otherwise from file"""
+        # Try to load from database first
+        db_content = self.load_from_database(filename)
+        if db_content:
+            config = configparser.ConfigParser()
+            config.optionxform = str
+            config.read_string(db_content)
+            
+            result = {}
+            for section in config.sections():
+                result[section] = {}
+                for key, value in config.items(section):
+                    result[section][key] = value
+            return result
+        
+        # Fall back to file loading
+        return self.load_ini_file(os.path.join(self.default_ini_path, filename))
+    
+    def load_from_database(self, filename):
+        """Load file content from SQLite database"""
+        try:
+            # Determine database path
+            if getattr(sys, 'frozen', False):
+                # For frozen exe, look in data folder next to executable
+                base_dir = os.path.dirname(sys.executable)
+                db_path = os.path.join(base_dir, DATA_FOLDER_NAME, 'default_config.db')
+            else:
+                # For development, look in data folder in current directory
+                db_path = os.path.join(DATA_FOLDER_NAME, 'default_config.db')
+            
+            if not os.path.exists(db_path):
+                from .localization.language_manager import get_current_localization
+                loc = get_current_localization()
+                raise FileNotFoundError(loc.get_error("database_not_found", db_path=db_path))
+            
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            cursor.execute('SELECT content FROM config_files WHERE filename = ?', (filename,))
+            result = cursor.fetchone()
+            
+            conn.close()
+            
+            if result:
+                return result[0]
+            return None
+            
+        except Exception as e:
+            return None
+
     def load_ini_file(self, filename):
         config = configparser.ConfigParser()
         config.optionxform = str
@@ -178,5 +259,5 @@ class ConfigHandler:
             if values:
                 ini[section] = {k: str(v) for k, v in values.items()}
             
-        with open(filename, 'w') as f:
+        with open(filename, 'w', encoding='utf-8') as f:
             ini.write(f)

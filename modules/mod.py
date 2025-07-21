@@ -8,7 +8,9 @@ import subprocess
 import shutil
 from pathlib import Path
 import sys
+import json
 from tkinter import messagebox
+from .config import DATA_FOLDER_NAME
 
 class ModCreator:
     def __init__(self, base_path):
@@ -17,6 +19,46 @@ class ModCreator:
             self.exe_dir = os.path.dirname(sys.executable)
         else:
             self.exe_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        
+        # Load mod configuration
+        self.mod_config = self._load_mod_config()
+    
+    def _load_mod_config(self):
+        """Load mod configuration from JSON file if available, otherwise from SQLite database (default_config.db)"""
+        import sqlite3
+        import json
+        # Try JSON file first (for development)
+        config_path = os.path.join(self.base_path, 'default_ini', 'mod_config.json')
+        if os.path.exists(config_path):
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            if 'mod_settings' not in config:
+                raise ValueError(f"'mod_settings' key missing in {config_path}")
+            return config['mod_settings']
+        # Fallback to DB (for EXE)
+        if getattr(sys, 'frozen', False):
+            # For frozen exe, look in data folder next to executable
+            base_dir = os.path.dirname(sys.executable)
+            db_path = os.path.join(base_dir, DATA_FOLDER_NAME, 'default_config.db')
+        else:
+            # For development, look in data folder in current directory
+            db_path = os.path.join(DATA_FOLDER_NAME, 'default_config.db')
+        
+        if not os.path.exists(db_path):
+            from .localization.language_manager import get_current_localization
+            loc = get_current_localization()
+            raise FileNotFoundError(loc.get_error("database_not_found", db_path=db_path))
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT content FROM config_files WHERE filename = 'mod_config.json'")
+        row = cursor.fetchone()
+        conn.close()
+        if not row:
+            raise FileNotFoundError("mod_config.json not found in database")
+        config = json.loads(row[0])
+        if 'mod_settings' not in config:
+            raise ValueError("'mod_settings' key missing in mod_config.json from database")
+        return config['mod_settings']
 
     def find_pak_files(self, directory):
         """Recursively find .pak files in directory and its subdirectories"""
@@ -57,7 +99,7 @@ class ModCreator:
         if not repak_path:
             from .localization.language_manager import get_current_localization
             loc = get_current_localization()
-            repak_folder_path = os.path.join(self.exe_dir, 'repak')
+            repak_folder_path = os.path.join(self.exe_dir, DATA_FOLDER_NAME, 'repak')
             raise FileNotFoundError(loc.get_error("repak_not_found", repak_path=repak_folder_path))
 
         # Create temporary build directory
@@ -71,10 +113,18 @@ class ModCreator:
                 os.remove(old_mod_file)
             
             # Create temporary directory for mod building
-            temp_build_dir = tempfile.mkdtemp(prefix='scam_mod_build')
+            temp_build_dir = tempfile.mkdtemp(prefix='pak_mod_builder')
             
-            # Create mod structure in temp directory
-            mod_path = Path(temp_build_dir) / 'z_SCAM_P' / 'Stalker2' / 'Content' / 'GameLite' / 'GameData' / 'ObjPrototypes'
+            # Enforce all config keys must be present
+            required_keys = ['mod_folder_name', 'cfg_folder_name', 'cfg_file_name']
+            for key in required_keys:
+                if key not in self.mod_config:
+                    raise KeyError(f"'{key}' missing in mod_config.json or database. Please provide all required keys.")
+            mod_folder = self.mod_config['mod_folder_name']
+            cfg_folder = self.mod_config['cfg_folder_name']
+            cfg_file = self.mod_config['cfg_file_name']
+            
+            mod_path = Path(temp_build_dir) / mod_folder / 'Stalker2' / 'Content' / 'GameLite' / 'GameData' / 'ObjPrototypes' / cfg_folder
             mod_path.mkdir(parents=True, exist_ok=True)
             
             if 'Aiming' in config:
@@ -82,7 +132,7 @@ class ModCreator:
             
             cfg_content = self._generate_cfg_content(config)
             
-            with open(mod_path / 'zSCAM.cfg', 'w') as f:
+            with open(mod_path / cfg_file, 'w', encoding='utf-8') as f:
                 f.write(cfg_content)
             
             self._run_repak(mods_path, repak_path, temp_build_dir)
@@ -99,12 +149,17 @@ class ModCreator:
 
     def _find_repak(self):
         """Find repak.exe in the correct location only"""
-        # First check if it's bundled
+        # Check in data folder next to executable
+        data_path = os.path.join(self.exe_dir, DATA_FOLDER_NAME, 'repak', 'repak.exe')
+        if os.path.exists(data_path):
+            return data_path
+
+        # Fallback: check if it's bundled (for development)
         bundled_path = os.path.join(self.base_path, 'repak', 'repak.exe')
         if os.path.exists(bundled_path):
             return bundled_path
 
-        # If not bundled, check next to the executable/script
+        # Fallback: check next to the executable/script (legacy)
         external_path = os.path.join(self.exe_dir, 'repak', 'repak.exe')
         if os.path.exists(external_path):
             return external_path
@@ -112,9 +167,9 @@ class ModCreator:
         return None
 
     def _generate_cfg_content(self, config):
-        content = "CustomPlayer : struct.begin {refurl=../ObjPrototypes.cfg; refkey=Player}\n"
+        content = "PlayerCustom : struct.begin {refurl=../../ObjPrototypes.cfg; refkey=Player}\n"
         
-        # Handle SpendStaminaInSafeZone as a special case - it goes directly under CustomPlayer
+        # Handle SpendStaminaInSafeZone as a special case - it goes directly under PlayerCustom
         if 'StaminaPerAction' in config and 'SpendStaminaInSafeZone' in config['StaminaPerAction']:
             content += f"SpendStaminaInSafeZone = {config['StaminaPerAction']['SpendStaminaInSafeZone']}\n"
         
@@ -181,16 +236,19 @@ class ModCreator:
                     startupinfo.wShowWindow = subprocess.SW_HIDE
                     creationflags = subprocess.CREATE_NO_WINDOW
                 
+                # Get mod folder name from config
+                mod_folder = self.mod_config.get('mod_folder_name', 'z_SCAM_P')
+                
                 # Run repak subprocess (hidden)
-                subprocess.run([repak_path, 'pack', 'z_SCAM_P'], 
+                subprocess.run([repak_path, 'pack', mod_folder], 
                              check=True,
                              startupinfo=startupinfo,
                              creationflags=creationflags)
                 
                 # Move the created pak file to destination
-                pak_file = os.path.join(temp_build_dir, 'z_SCAM_P.pak')
+                pak_file = os.path.join(temp_build_dir, f'{mod_folder}.pak')
                 if os.path.exists(pak_file):
-                    shutil.move(pak_file, os.path.join(mods_path, 'z_SCAM_P.pak'))
+                    shutil.move(pak_file, os.path.join(mods_path, f'{mod_folder}.pak'))
                 
                 # Restore original working directory
                 os.chdir(original_cwd)

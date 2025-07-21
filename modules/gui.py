@@ -78,8 +78,27 @@ class MovementConfigEditor:
             pass  # If icon setting fails, continue without it
 
         self.config_handler = ConfigHandler(self.base_path, self.user_data_path)
-        self.mod_creator = ModCreator(self.base_path)
-        self.config_interface = ConfigInterface(self.window, self.config_handler)
+        
+        # Initialize mod_creator with error handling
+        try:
+            self.mod_creator = ModCreator(self.base_path)
+        except FileNotFoundError as e:
+            # Show error popup and exit
+            from tkinter import messagebox
+            messagebox.showerror("Missing File", str(e))
+            self.window.destroy()
+            return
+        
+        # Initialize config_interface with error handling
+        try:
+            self.config_interface = ConfigInterface(self.window, self.config_handler)
+        except FileNotFoundError as e:
+            # Show error popup and exit
+            from tkinter import messagebox
+            messagebox.showerror("Missing File", str(e))
+            self.window.destroy()
+            return
+        
         self.language_manager = LanguageManager(self.base_path, self.user_data_path)
         # Removed update_checker initialization
         

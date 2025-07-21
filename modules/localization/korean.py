@@ -148,16 +148,17 @@ Xbox: C:\\XboxGames\\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\\Content""",
     "failed_to_create_input_ini": "Input.ini 생성에 실패했습니다: {error}",
     "failed_to_run_repak": "repak 실행에 실패했습니다: {error}",
     "error_during_mod_creation": "모드 생성 중 오류가 발생했습니다: {error}",
-    "repak_not_found": """repak.exe를 찾을 수 없습니다! Repak이 애플리케이션에 포함되어 있습니다.
+    "repak_not_found": """repak.exe를 찾을 수 없습니다! Repak은 {data_folder}/repak 폴더에 있어야 합니다.
 
-'repak' 폴더가 존재하고 그 안에 repak.exe가 있는지 확인해주세요.
+'{data_folder}/repak' 폴더가 존재하고 그 안에 repak.exe가 있는지 확인해주세요.
 repak 폴더는 다음 위치에 있어야 합니다: {repak_path}
 
-폴더 구조:
-설치 폴더
-   └─ Stalker Character Adjustment Manager.exe
+예상 폴더 구조:
+Stalker Character Adjustment Manager.exe
+└─ {data_folder}
    └─ repak
       └─ repak.exe""",
+    "database_not_found": "default_config.db를 찾을 수 없습니다! {data_folder} 폴더가 존재하고 그 안에 default_config.db가 있는지 확인해주세요.",
     "value_cannot_be_empty": "{section} - {key}: 비어있을 수 없습니다",
     "value_exceeds_maximum": "{section} - {key}: 값 {value}가 최대값 {max}를 초과합니다",
     "value_must_be_number": "{section} - {key}: 유효한 숫자여야 합니다",

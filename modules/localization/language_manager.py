@@ -12,6 +12,14 @@ import os
 # Global variable to store current localization
 _current_localization = None
 
+def get_data_folder_name():
+    """Get the data folder name without circular imports"""
+    try:
+        from modules.config import DATA_FOLDER_NAME
+        return DATA_FOLDER_NAME
+    except ImportError:
+        return "data"  # Fallback to default
+
 class LanguageManager:
     """
     Manages language selection and localization loading
@@ -70,7 +78,7 @@ class LanguageManager:
             
             prefs['language'] = language_code
             
-            with open(self.preferences_file, 'w') as f:
+            with open(self.preferences_file, 'w', encoding='utf-8') as f:
                 json.dump(prefs, f, indent=2)
         except:
             pass
@@ -258,6 +266,7 @@ class Localization:
     def get_label(self, key, **kwargs):
         """Get a form label with optional formatting"""
         text = self.lang.LABELS.get(key, key)
+        kwargs['data_folder'] = get_data_folder_name()
         return text.format(**kwargs) if kwargs else text
         
     def get_language(self, key):
@@ -275,31 +284,37 @@ class Localization:
     def get_success(self, key, **kwargs):
         """Get a success message with optional formatting"""
         text = self.lang.SUCCESS_MESSAGES.get(key, key)
+        kwargs['data_folder'] = get_data_folder_name()
         return text.format(**kwargs) if kwargs else text
         
     def get_warning(self, key, **kwargs):
         """Get a warning message with optional formatting"""
         text = self.lang.WARNING_MESSAGES.get(key, key)
+        kwargs['data_folder'] = get_data_folder_name()
         return text.format(**kwargs) if kwargs else text
         
     def get_error(self, key, **kwargs):
         """Get an error message with optional formatting"""
         text = self.lang.ERROR_MESSAGES.get(key, key)
+        kwargs['data_folder'] = get_data_folder_name()
         return text.format(**kwargs) if kwargs else text
         
     def get_confirmation(self, key, **kwargs):
         """Get a confirmation message with optional formatting"""
         text = self.lang.CONFIRMATIONS.get(key, key)
+        kwargs['data_folder'] = get_data_folder_name()
         return text.format(**kwargs) if kwargs else text
         
     def get_instruction(self, key, **kwargs):
         """Get an instruction text with optional formatting"""
         text = self.lang.INSTRUCTIONS.get(key, key)
+        kwargs['data_folder'] = get_data_folder_name()
         return text.format(**kwargs) if kwargs else text
         
     def get_status(self, key, **kwargs):
         """Get a status message with optional formatting"""
         text = self.lang.STATUS.get(key, key)
+        kwargs['data_folder'] = get_data_folder_name()
         return text.format(**kwargs) if kwargs else text
         
     def get_font(self, key):

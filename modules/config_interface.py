@@ -4,7 +4,9 @@ from tkinter import ttk, messagebox, filedialog
 import os
 import configparser
 import shutil
+import json
 from .localization.language_manager import get_current_localization, t, font
+import sys
 
 class ConfigInterface:
     def __init__(self, parent, config_handler):
@@ -23,6 +25,9 @@ class ConfigInterface:
         self.mouse_btn = None
         self.mod_exists = False
         
+        # Load mod configuration
+        self.mod_config = self._load_mod_config()
+        
         # Initialize style object (may be used for other styling)
         self.style = ttk.Style()
         
@@ -30,6 +35,52 @@ class ConfigInterface:
         self.game_dir.trace_add('write', self._on_game_dir_change)
         
         self.load_saved_directory()
+    
+    def _load_mod_config(self):
+        """Load mod configuration from JSON file if available, otherwise from SQLite database (default_config.db)"""
+        import sqlite3
+        import json
+        import sys
+        # Try JSON file first (for development)
+        if getattr(sys, 'frozen', False):
+            exe_dir = os.path.dirname(sys.executable)
+        else:
+            exe_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        config_path = os.path.join(exe_dir, 'default_ini', 'mod_config.json')
+        if os.path.exists(config_path):
+            with open(config_path, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            if 'mod_settings' not in config:
+                raise ValueError(f"'mod_settings' key missing in {config_path}")
+            return config['mod_settings']
+        # Fallback to DB (for EXE)
+        if getattr(sys, 'frozen', False):
+            exe_dir = os.path.dirname(sys.executable)
+        else:
+            exe_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        from .config import DATA_FOLDER_NAME
+        if getattr(sys, 'frozen', False):
+            # For frozen exe, look in data folder next to executable
+            db_path = os.path.join(exe_dir, DATA_FOLDER_NAME, 'default_config.db')
+        else:
+            # For development, look in data folder in current directory
+            db_path = os.path.join(DATA_FOLDER_NAME, 'default_config.db')
+        
+        if not os.path.exists(db_path):
+            from .localization.language_manager import get_current_localization
+            loc = get_current_localization()
+            raise FileNotFoundError(loc.get_error("database_not_found", db_path=db_path))
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT content FROM config_files WHERE filename = 'mod_config.json'")
+        row = cursor.fetchone()
+        conn.close()
+        if not row:
+            raise FileNotFoundError("mod_config.json not found in database")
+        config = json.loads(row[0])
+        if 'mod_settings' not in config:
+            raise ValueError("'mod_settings' key missing in mod_config.json from database")
+        return config['mod_settings']
 
     def find_correct_game_directory(self, selected_path):
         """
@@ -220,8 +271,9 @@ class ConfigInterface:
         """Update the state of default button for a specific setting"""
         if (section, key) not in self.default_buttons:
             return
-            
+        
         default_value = self.config_handler.default_config[section][key]
+        
         is_default = False
         
         if isinstance(default_value, bool):
@@ -258,6 +310,7 @@ class ConfigInterface:
             return
             
         label = self.labels[(section, key)]
+        
         default_value = self.config_handler.default_config[section][key]
         
         if isinstance(default_value, bool):
@@ -319,7 +372,8 @@ class ConfigInterface:
             mods_path = os.path.join(path, "Stalker2", "Content", "Paks", "~mods")
             # Check for both old and new mod file names
             old_mod_file = os.path.join(mods_path, 'z_SCAMMovementAiming_P.pak')
-            new_mod_file = os.path.join(mods_path, 'z_SCAM_P.pak')
+            mod_folder = self.mod_config.get('mod_folder_name', 'z_SCAM_P')
+            new_mod_file = os.path.join(mods_path, f'{mod_folder}.pak')
             self.mod_exists = os.path.exists(old_mod_file) or os.path.exists(new_mod_file)
 
     def update_mod_status(self):
@@ -368,7 +422,7 @@ class ConfigInterface:
             config = configparser.ConfigParser()
             config['Directory'] = {'path': directory}
             stalker_location_path = os.path.join(self.user_data_path, 'stalker_location.ini')
-            with open(stalker_location_path, 'w') as f:
+            with open(stalker_location_path, 'w', encoding='utf-8') as f:
                 config.write(f)
 
     def setup_game_dir_frame(self, frame):
@@ -449,7 +503,8 @@ class ConfigInterface:
                 mods_path = os.path.join(self.game_dir.get(), "Stalker2", "Content", "Paks", "~mods")
                 # Check for both old and new mod file names
                 old_mod_file = os.path.join(mods_path, 'z_SCAMMovementAiming_P.pak')
-                new_mod_file = os.path.join(mods_path, 'z_SCAM_P.pak')
+                mod_folder = self.mod_config.get('mod_folder_name', 'z_SCAM_P')
+                new_mod_file = os.path.join(mods_path, f'{mod_folder}.pak')
                 
                 removed = False
                 if os.path.exists(old_mod_file):
@@ -572,7 +627,7 @@ class ConfigInterface:
                     while new_content and new_content[-1].strip() == '':
                         new_content.pop()
                     
-                    with open(input_ini_path, 'w') as f:
+                    with open(input_ini_path, 'w', encoding='utf-8') as f:
                         f.writelines(new_content)
                     
                     self.mouse_btn.configure(text=self.get_mouse_smoothing_button_text())
@@ -631,7 +686,7 @@ class ConfigInterface:
                 if section != '[/Script/Engine.InputSettings]':
                     content += f"\n{section}\n" + "\n".join(lines) + "\n"
                     
-            with open(input_ini_path, 'w') as f:
+            with open(input_ini_path, 'w', encoding='utf-8') as f:
                 f.write(content)
                 
             loc = get_current_localization()
@@ -766,8 +821,10 @@ class ConfigInterface:
             label.grid(row=row, column=0, padx=5, pady=2, sticky='e')
             self.labels[('MovementParams', key)] = label  # Store label reference
             
+            default_value = self.config_handler.default_config['MovementParams'][key]
+            
             entry = ttk.Entry(frame)
-            entry.insert(0, str(self.config_handler.default_config['MovementParams'][key]))
+            entry.insert(0, str(default_value))
             entry.grid(row=row, column=1, padx=5, pady=2, sticky='w')
             entry.bind('<KeyRelease>', lambda e, k=key: self.validate_aiming_entry(k))
             self.entries[('MovementParams', key)] = entry
@@ -777,8 +834,7 @@ class ConfigInterface:
             default_btn.grid(row=row, column=2, padx=5, pady=2, sticky='w')
             self.default_buttons[('MovementParams', key)] = default_btn
             
-            self.add_value_labels(frame, 'MovementParams', key, 
-                                self.config_handler.default_config['MovementParams'][key], row)
+            self.add_value_labels(frame, 'MovementParams', key, default_value, row)
 
     def sync_sensitivity_rates(self):
         if self.sync_sensitivity.get():
@@ -787,7 +843,8 @@ class ConfigInterface:
                 value = int(turn_value)
                 self.entries[('MovementParams', 'BaseLookUpRate')].delete(0, tk.END)
                 self.entries[('MovementParams', 'BaseLookUpRate')].insert(0, str(value))
-                self.validate_entry('MovementParams', 'BaseLookUpRate')
+                # Use validate_aiming_entry instead of validate_entry for aiming controls
+                self.validate_aiming_entry('BaseLookUpRate')
             except ValueError:
                 pass
         
@@ -804,6 +861,7 @@ class ConfigInterface:
         
         try:
             value = int(current_value)
+            
             default_value = str(self.config_handler.default_config['MovementParams'][key])
             
             exceeds_max = False
@@ -843,14 +901,16 @@ class ConfigInterface:
         default_value = str(self.config_handler.default_config[section][key])
 
         try:
-            if not current_value and isinstance(self.config_handler.default_config[section][key], (int, float)):
+            actual_default_value = self.config_handler.default_config[section][key]
+            
+            if not current_value and isinstance(actual_default_value, (int, float)):
                 entry.configure(foreground='red')
                 self.update_default_button_state(section, key)
                 self.update_label_color(section, key)
                 self.update_tab_colors()
                 return False
 
-            if isinstance(self.config_handler.default_config[section][key], (int, float)):
+            if isinstance(actual_default_value, (int, float)):
                 if '.' in current_value:
                     value = float(current_value)
                 else:
@@ -914,12 +974,14 @@ class ConfigInterface:
         for (section, key), entry in self.entries.items():
             current_value = entry.get().strip()
             default_value = str(self.config_handler.default_config[section][key])
+            
             if current_value != default_value:
                 return True
                 
         for (section, key), checkbox in self.checkboxes.items():
-            current_value = checkbox.get()
             default_value = self.config_handler.default_config[section][key]
+            
+            current_value = checkbox.get()
             if current_value != default_value:
                 return True
                 
