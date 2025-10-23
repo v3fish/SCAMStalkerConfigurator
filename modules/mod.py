@@ -167,7 +167,7 @@ class ModCreator:
         return None
 
     def _generate_cfg_content(self, config):
-        content = "PlayerCustom : struct.begin {refurl=../../ObjPrototypes.cfg; refkey=Player}\n"
+        content = "Player : struct.begin {bpatch}\n"
         
         # Handle SpendStaminaInSafeZone as a special case - it goes directly under PlayerCustom
         if 'StaminaPerAction' in config and 'SpendStaminaInSafeZone' in config['StaminaPerAction']:
@@ -183,7 +183,7 @@ class ModCreator:
             
             # Only create the section if there are still values left
             if section_values:
-                content += f"   {section} : struct.begin\n"
+                content += f"   {section} : struct.begin {{bpatch}}\n"
                 for key, value in section_values.items():
                     content += f"      {key} = {value}\n"
                 content += "   struct.end\n"
