@@ -1,4 +1,6 @@
 # modules/gui.py
+import ctypes
+import re
 import tkinter as tk
 from tkinter import ttk, messagebox, simpledialog
 import sys
@@ -8,7 +10,11 @@ from .mod import ModCreator
 from .config_interface import ConfigInterface
 from .localization.language_manager import LanguageManager, get_current_localization, t, error, success, warning, confirm, font
 # Removed updater import to eliminate network functionality and potential AV false positives
-from . import VERSION
+from . import VERSION, short_version
+
+DEFAULT_GEOMETRY = "1000x965"
+GEOMETRY_RE = re.compile(r"^(\d+)x(\d+)([+-]\d+)([+-]\d+)$")
+VISIBLE_EDGE_PX = 80
 
 class PresetDialog(tk.Toplevel):
     def __init__(self, parent):
@@ -57,7 +63,11 @@ class PresetDialog(tk.Toplevel):
 class MovementConfigEditor:
     def __init__(self):
         self.window = tk.Tk()
-        self.window.geometry("1000x965")
+        self.window.withdraw()
+        self.window.geometry(DEFAULT_GEOMETRY)
+        self._normal_geometry = DEFAULT_GEOMETRY
+        self._window_state = "normal"
+        self._save_geom_after = None
 
         if getattr(sys, 'frozen', False):
             # For reading bundled resources (INI files, icons, etc.)
@@ -78,6 +88,7 @@ class MovementConfigEditor:
             pass  # If icon setting fails, continue without it
 
         self.config_handler = ConfigHandler(self.base_path, self.user_data_path)
+        self._restore_window_geometry()
         
         # Initialize mod_creator with error handling
         try:
@@ -104,7 +115,7 @@ class MovementConfigEditor:
         
         # Set window title after language manager is initialized
         loc = get_current_localization()
-        self.window.title(loc.get_app_title(VERSION))
+        self.window.title(loc.get_app_title(short_version(VERSION)))
         
         self.force_defaults = tk.BooleanVar(value=False)
         
@@ -115,12 +126,93 @@ class MovementConfigEditor:
         
         # Restore last settings after GUI is set up
         self.restore_last_settings()
-        
-        # Removed update functionality
+        self._show_window()
+        self.window.bind("<Configure>", self._on_window_configure)
+
+    def _virtual_screen(self):
+        """All-monitor desktop bounds. Negative x/y is normal when a screen is left of primary."""
+        try:
+            user32 = ctypes.windll.user32
+            x = int(user32.GetSystemMetrics(76))
+            y = int(user32.GetSystemMetrics(77))
+            w = int(user32.GetSystemMetrics(78))
+            h = int(user32.GetSystemMetrics(79))
+            if w > 0 and h > 0:
+                return x, y, w, h
+        except Exception:
+            pass
+        return 0, 0, int(self.window.winfo_screenwidth()), int(self.window.winfo_screenheight())
+
+    def _geometry_on_screen(self, geometry):
+        match = GEOMETRY_RE.match(geometry or "")
+        if not match:
+            return False
+        width, height, x, y = (int(part) for part in match.groups())
+        vx, vy, vw, vh = self._virtual_screen()
+        title_left = x + VISIBLE_EDGE_PX
+        title_right = x + width - VISIBLE_EDGE_PX
+        title_top = y
+        title_bottom = y + VISIBLE_EDGE_PX
+        return (
+            title_right > vx
+            and title_left < vx + vw
+            and title_bottom > vy
+            and title_top < vy + vh
+        )
+
+    def _save_window_prefs(self):
+        if self._save_geom_after is not None:
+            self.window.after_cancel(self._save_geom_after)
+            self._save_geom_after = None
+        state = self.window.state()
+        if state == "normal":
+            geometry = self.window.geometry()
+            self._normal_geometry = geometry
+            self._window_state = "normal"
+        else:
+            geometry = self._normal_geometry
+            if state == "zoomed":
+                self._window_state = "zoomed"
+        state = self._window_state if self._window_state in ("normal", "zoomed") else "normal"
+        if not self._geometry_on_screen(geometry):
+            return
+        self.config_handler.set_window_prefs(geometry, state)
+
+    def _restore_window_geometry(self):
+        prefs = self.config_handler.get_window_prefs()
+        geometry = prefs.get("geometry")
+        state = prefs.get("state", "normal")
+        if not isinstance(geometry, str) or not self._geometry_on_screen(geometry):
+            return
+        self._normal_geometry = geometry
+        self._window_state = "zoomed" if state == "zoomed" else "normal"
+        self.window.geometry(geometry)
+
+    def _show_window(self):
+        self.window.update_idletasks()
+        if self._window_state != "zoomed":
+            self.window.geometry(self._normal_geometry)
+        self.window.deiconify()
+        if self._window_state == "zoomed":
+            self.window.state("zoomed")
+
+    def _on_window_configure(self, event):
+        if event.widget is not self.window:
+            return
+        state = self.window.state()
+        if state == "normal":
+            self._normal_geometry = self.window.geometry()
+            self._window_state = "normal"
+        elif state == "zoomed":
+            self._window_state = "zoomed"
+        if self._save_geom_after is not None:
+            self.window.after_cancel(self._save_geom_after)
+        self._save_geom_after = self.window.after(400, self._save_window_prefs)
 
     def on_closing(self):
         """Handle window closing event to save current state"""
         try:
+            self._save_window_prefs()
             # Save current preset selection if one is selected
             if hasattr(self, 'preset_var') and self.preset_var.get():
                 self.config_handler.set_last_selected_preset(self.preset_var.get())
@@ -149,7 +241,7 @@ class MovementConfigEditor:
         
         loc = get_current_localization()
         credits_label = ttk.Label(credits_frame, 
-                                text=loc.get_credits_text(VERSION),
+                                text=loc.get_credits_text(short_version(VERSION)),
                                 font=font('small_italic_bold'))
         credits_label.pack(side='right')
 
@@ -176,6 +268,7 @@ class MovementConfigEditor:
         ttk.Button(preset_frame, text=t("save"), command=self.save_preset).pack(side='left', padx=5)
         ttk.Button(preset_frame, text=t("new_preset"), command=self.new_preset).pack(side='left', padx=5)
         ttk.Button(preset_frame, text=t("open_presets_folder"), command=self.open_presets_folder).pack(side='left', padx=5)
+        ttk.Button(preset_frame, text=t("refresh_presets"), command=self.load_presets).pack(side='left', padx=5)
         
         # Create buttons frame for mod-related buttons
         self.mod_buttons_frame = ttk.Frame(preset_frame)
@@ -313,17 +406,27 @@ class MovementConfigEditor:
 
     def load_presets(self):
         if not os.path.exists('Presets'):
+            self.preset_combo['values'] = []
+            if self.preset_var.get():
+                self.preset_var.set('')
             return
         presets = [f.replace('.ini', '') for f in os.listdir('Presets') if f.endswith('.ini')]
         self.preset_combo['values'] = presets
         
-        # Always restore last selected preset
         last_preset = self.config_handler.get_last_selected_preset()
         if last_preset and last_preset in presets:
             self.preset_var.set(last_preset)
+        elif self.preset_var.get() not in presets:
+            self.preset_var.set('')
 
     def load_default(self):
         self.config_interface.sync_sensitivity.set(False)
+        self.config_interface.remove_mouse_smoothing.set(False)
+        self.config_interface.disable_overweight_restriction.set(False)
+        self.config_interface.remove_water_slowdown.set(False)
+        self.config_interface.remove_mouse_slowdown.set(False)
+        self.config_interface.remove_camera_shake.set(False)
+        self.config_interface.remove_aim_block.set(False)
         self.force_defaults.set(False)
         self.config_interface.update_entries(self.config_handler.default_config)
         # Clear last settings when loading default (but keep preset selection)
@@ -433,6 +536,36 @@ class MovementConfigEditor:
             if 'sync_sensitivity' in last_settings:
                 self.config_interface.sync_sensitivity.set(last_settings['sync_sensitivity'])
             
+            # Restore remove mouse smoothing state
+            if 'remove_mouse_smoothing' in last_settings:
+                self.config_interface.remove_mouse_smoothing.set(last_settings['remove_mouse_smoothing'])
+                self.config_interface._on_remove_mouse_smoothing_change()
+            
+            # Restore disable overweight movement restriction state
+            if 'disable_overweight_restriction' in last_settings:
+                self.config_interface.disable_overweight_restriction.set(last_settings['disable_overweight_restriction'])
+                self.config_interface._on_disable_overweight_restriction_change()
+            
+            # Restore remove water slowdown state
+            if 'remove_water_slowdown' in last_settings:
+                self.config_interface.remove_water_slowdown.set(last_settings['remove_water_slowdown'])
+                self.config_interface._on_remove_water_slowdown_change()
+            
+            # Restore remove mouse slowdown state
+            if 'remove_mouse_slowdown' in last_settings:
+                self.config_interface.remove_mouse_slowdown.set(last_settings['remove_mouse_slowdown'])
+                self.config_interface._on_remove_mouse_slowdown_change()
+            
+            # Restore remove camera shake state
+            if 'remove_camera_shake' in last_settings:
+                self.config_interface.remove_camera_shake.set(last_settings['remove_camera_shake'])
+                self.config_interface._on_remove_camera_shake_change()
+            
+            # Restore remove aim block state
+            if 'remove_aim_block' in last_settings:
+                self.config_interface.remove_aim_block.set(last_settings['remove_aim_block'])
+                self.config_interface._on_remove_aim_block_change()
+            
             # Restore force defaults state
             if 'force_defaults' in last_settings:
                 self.force_defaults.set(last_settings['force_defaults'])
@@ -481,7 +614,7 @@ class MovementConfigEditor:
         
         try:
             is_local, mod_path = mods_check
-            self.mod_creator.create_mod(config, mod_path)
+            self.mod_creator.create_mod(config, mod_path, parent=self.window)
             
             # Save current settings after successful mod creation
             full_config = self.config_interface.get_current_config(include_defaults=True)
@@ -490,6 +623,12 @@ class MovementConfigEditor:
                 settings_to_save = {
                     'config': full_config,
                     'sync_sensitivity': self.config_interface.sync_sensitivity.get(),
+                    'remove_mouse_smoothing': self.config_interface.remove_mouse_smoothing.get(),
+                    'disable_overweight_restriction': self.config_interface.disable_overweight_restriction.get(),
+                    'remove_water_slowdown': self.config_interface.remove_water_slowdown.get(),
+                    'remove_mouse_slowdown': self.config_interface.remove_mouse_slowdown.get(),
+                    'remove_camera_shake': self.config_interface.remove_camera_shake.get(),
+                    'remove_aim_block': self.config_interface.remove_aim_block.get(),
                     'force_defaults': self.force_defaults.get()
                 }
                 self.config_handler.set_last_settings(settings_to_save)
@@ -519,7 +658,7 @@ class MovementConfigEditor:
     def refresh_ui(self):
         """Refresh all UI text after language change"""
         loc = get_current_localization()
-        self.window.title(loc.get_app_title(VERSION))
+        self.window.title(loc.get_app_title(short_version(VERSION)))
         
         # Reload configuration with new language-specific INI file
         self.config_handler.load_default_config()

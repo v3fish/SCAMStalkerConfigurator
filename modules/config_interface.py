@@ -20,9 +20,14 @@ class ConfigInterface:
         self.default_buttons = {}  # Track default buttons for each setting
         self.notebook = None  # Reference to the notebook widget for tab color updates
         self.sync_sensitivity = tk.BooleanVar(value=False)
+        self.remove_mouse_smoothing = tk.BooleanVar(value=False)
+        self.disable_overweight_restriction = tk.BooleanVar(value=False)
+        self.remove_water_slowdown = tk.BooleanVar(value=False)
+        self.remove_mouse_slowdown = tk.BooleanVar(value=False)
+        self.remove_camera_shake = tk.BooleanVar(value=False)
+        self.remove_aim_block = tk.BooleanVar(value=False)
         self.game_dir = tk.StringVar()
         self.dir_entry = None
-        self.mouse_btn = None
         self.mod_exists = False
         
         # Load mod configuration
@@ -165,6 +170,16 @@ class ConfigInterface:
         """Set reference to the notebook widget for tab color updates"""
         self.notebook = notebook
 
+    @staticmethod
+    def _is_value_at_default(current_value, default_value):
+        """Compare an entry's raw text to its default value, numerically if the default is a number."""
+        if isinstance(default_value, (int, float)) and not isinstance(default_value, bool):
+            try:
+                return float(current_value) == float(default_value)
+            except (TypeError, ValueError):
+                return False
+        return current_value == str(default_value)
+
     def has_category_changes(self, section):
         """Check if a specific category has any changes from defaults"""
         # Special case for Aiming section - check aiming-related MovementParams
@@ -174,13 +189,21 @@ class ConfigInterface:
                 if self.sync_sensitivity.get() != self.config_handler.default_config['Aiming']['SyncTurnRate']:
                     return True
             
+            # Check remove mouse smoothing setting (default is off/False)
+            if self.remove_mouse_smoothing.get():
+                return True
+            
+            # Check remove mouse slowdown / camera shake / aim block (default is off/False)
+            if self.remove_mouse_slowdown.get() or self.remove_camera_shake.get() or self.remove_aim_block.get():
+                return True
+            
             # Check BaseTurnRate and BaseLookUpRate (displayed in Aiming tab but stored as MovementParams)
             for aiming_key in ['BaseTurnRate', 'BaseLookUpRate']:
                 if ('MovementParams', aiming_key) in self.entries:
                     entry = self.entries[('MovementParams', aiming_key)]
                     current_value = entry.get().strip()
-                    default_value = str(self.config_handler.default_config['MovementParams'][aiming_key])
-                    if current_value != default_value:
+                    default_value = self.config_handler.default_config['MovementParams'][aiming_key]
+                    if not self._is_value_at_default(current_value, default_value):
                         return True
             return False
         
@@ -189,8 +212,8 @@ class ConfigInterface:
             for (sec, key), entry in self.entries.items():
                 if sec == section and key not in ['BaseTurnRate', 'BaseLookUpRate']:
                     current_value = entry.get().strip()
-                    default_value = str(self.config_handler.default_config[section][key])
-                    if current_value != default_value:
+                    default_value = self.config_handler.default_config[section][key]
+                    if not self._is_value_at_default(current_value, default_value):
                         return True
             
             for (sec, key), checkbox in self.checkboxes.items():
@@ -200,6 +223,14 @@ class ConfigInterface:
                     if current_value != default_value:
                         return True
             
+            # Check disable overweight movement restriction setting (default is off/False)
+            if self.disable_overweight_restriction.get():
+                return True
+            
+            # Check remove water slowdown setting (default is off/False)
+            if self.remove_water_slowdown.get():
+                return True
+            
             return False
         
         # General case for all other sections
@@ -207,8 +238,8 @@ class ConfigInterface:
         for (sec, key), entry in self.entries.items():
             if sec == section:
                 current_value = entry.get().strip()
-                default_value = str(self.config_handler.default_config[section][key])
-                if current_value != default_value:
+                default_value = self.config_handler.default_config[section][key]
+                if not self._is_value_at_default(current_value, default_value):
                     return True
         
         # Check checkboxes
@@ -283,7 +314,7 @@ class ConfigInterface:
         else:
             if (section, key) in self.entries:
                 current_value = self.entries[(section, key)].get().strip()
-                is_default = current_value == str(default_value)
+                is_default = self._is_value_at_default(current_value, default_value)
         
         # Enable/disable button based on whether value is at default
         button = self.default_buttons[(section, key)]
@@ -325,7 +356,7 @@ class ConfigInterface:
         else:
             if (section, key) in self.entries:
                 current_value = self.entries[(section, key)].get().strip()
-                is_default = current_value == str(default_value)
+                is_default = self._is_value_at_default(current_value, default_value)
                 
                 # Check if value is invalid
                 is_invalid = False
@@ -524,179 +555,89 @@ class ConfigInterface:
                                 loc.get_error("failed_to_remove_mod", error=str(e)))
             return False
 
-    def get_mouse_smoothing_state(self):
-        config_paths = [
-            os.path.join(os.getenv('LOCALAPPDATA'), 'Stalker2', 'Saved', 'Config', 'Windows', 'Input.ini'),
-            os.path.join(os.getenv('LOCALAPPDATA'), 'Stalker2', 'Saved', 'Config', 'WinGDK', 'Input.ini')
-        ]
-        
-        mouse_settings = {
-            'bViewAccelerationEnabled': 'False',
-            'bEnableMouseSmoothing': 'False'
-        }
-        
-        for path in config_paths:
-            if os.path.exists(path):
-                try:
-                    with open(path, 'r') as f:
-                        content = f.read()
-                        if '[/Script/Engine.InputSettings]' in content:
-                            # Check if any settings are missing or have different values
-                            for setting, value in mouse_settings.items():
-                                setting_str = f"{setting}={value}"
-                                if setting_str not in content:
-                                    return True
-                            return False
-                except:
-                    pass
-        return True
-
-    def get_mouse_smoothing_button_text(self):
-        loc = get_current_localization()
-        return loc.get_button("remove_mouse_smoothing") if self.get_mouse_smoothing_state() else loc.get_button("re_enable_mouse_smoothing")
-
-    def toggle_mouse_smoothing(self):
-        config_paths = [
-            os.path.join(os.getenv('LOCALAPPDATA'), 'Stalker2', 'Saved', 'Config', 'Windows'),
-            os.path.join(os.getenv('LOCALAPPDATA'), 'Stalker2', 'Saved', 'Config', 'WinGDK')
-        ]
-        
-        input_ini_found = False
-        current_state = self.get_mouse_smoothing_state()
-        new_state = not current_state
-        
-        mouse_settings = {
-            'bViewAccelerationEnabled': 'False',
-            'bEnableMouseSmoothing': 'False'
-        }
-        
-        for path in config_paths:
-            if not os.path.exists(path):
-                continue
-                
-            input_ini_path = os.path.join(path, 'Input.ini')
-            if os.path.exists(input_ini_path):
-                try:
-                    with open(input_ini_path, 'r') as f:
-                        lines = f.readlines()
-                    
-                    new_content = []
-                    sections = {}
-                    current_section = None
-                    
-                    # First pass: organize content into sections
-                    for line in lines:
-                        stripped_line = line.strip()
-                        if stripped_line.startswith('['):
-                            current_section = stripped_line
-                            sections[current_section] = []
-                        elif current_section and stripped_line:
-                            if current_section == '[/Script/Engine.InputSettings]':
-                                if not any(setting in line for setting in mouse_settings.keys()):
-                                    sections[current_section].append(line)
-                            else:
-                                sections[current_section].append(line)
-                    
-                    # Second pass: reconstruct content
-                    input_settings = '[/Script/Engine.InputSettings]'
-                    
-                    # Handle InputSettings section
-                    if input_settings in sections and sections[input_settings]:
-                        new_content.append(f"{input_settings}\n")
-                        new_content.extend(sections[input_settings])
-                        if not new_state:
-                            if not new_content[-1].endswith('\n'):
-                                new_content.append('\n')
-                    elif not new_state:
-                        new_content.append(f"{input_settings}\n")
-                    
-                    # Add mouse settings if removing mouse smoothing
-                    if not new_state:
-                        for setting, value in mouse_settings.items():
-                            new_content.append(f"{setting}={value}\n")
-                    
-                    # Add other sections
-                    for section, content in sections.items():
-                        if section != input_settings:
-                            if new_content:
-                                new_content.append('\n')
-                            new_content.append(f"{section}\n")
-                            new_content.extend(content)
-                    
-                    # Remove trailing empty lines
-                    while new_content and new_content[-1].strip() == '':
-                        new_content.pop()
-                    
-                    with open(input_ini_path, 'w', encoding='utf-8') as f:
-                        f.writelines(new_content)
-                    
-                    self.mouse_btn.configure(text=self.get_mouse_smoothing_button_text())
-                    loc = get_current_localization()
-                    action_text = "removed" if new_state else "added"
-                    messagebox.showinfo(loc.get_title("success"), 
-                                       loc.get_status("mouse_smoothing_success", action=action_text))
-                    input_ini_found = True
-                    break
-                        
-                except Exception as e:
-                    loc = get_current_localization()
-                    messagebox.showerror(loc.get_title("error"), 
-                                        loc.get_error("failed_to_update_input_ini", error=str(e)))
-                    break
-        
-        if not input_ini_found:
-            self.create_default_input_ini(new_state)
-
-    def create_default_input_ini(self, smoothing_enabled):
-        try:
-            # Read existing content if file exists
-            existing_content = {}
-            input_ini_path = os.path.join(self.user_data_path, 'Input.ini')
-            if os.path.exists(input_ini_path):
-                with open(input_ini_path, 'r') as f:
-                    current_section = None
-                    for line in f:
-                        line = line.strip()
-                        if line.startswith('['):
-                            current_section = line
-                            existing_content[current_section] = []
-                        elif current_section and line:
-                            if not any(setting in line for setting in ['bViewAccelerationEnabled', 'bEnableMouseSmoothing']):
-                                existing_content[current_section].append(line)
-
-            # Create new content
-            content = ""
-            engine_settings = "[/Script/Engine.InputSettings]\n"
-            
-            if smoothing_enabled:
-                # Remove mouse smoothing settings
-                if existing_content.get('[/Script/Engine.InputSettings]'):
-                    engine_settings += "\n".join(existing_content['[/Script/Engine.InputSettings]']) + "\n"
+    def _on_remove_mouse_smoothing_change(self):
+        """Called when the remove mouse smoothing checkbox changes"""
+        if ('Aiming', 'RemoveMouseSmoothing') in self.labels:
+            label = self.labels[('Aiming', 'RemoveMouseSmoothing')]
+            if self.remove_mouse_smoothing.get():
+                label.configure(foreground='green', font=font('bold'))
             else:
-                # Add mouse smoothing settings
-                engine_settings += "bViewAccelerationEnabled=False\n"
-                engine_settings += "bEnableMouseSmoothing=False\n"
-                if existing_content.get('[/Script/Engine.InputSettings]'):
-                    engine_settings += "\n".join(existing_content['[/Script/Engine.InputSettings]']) + "\n"
-            
-            content += engine_settings
-            
-            # Add other sections
-            for section, lines in existing_content.items():
-                if section != '[/Script/Engine.InputSettings]':
-                    content += f"\n{section}\n" + "\n".join(lines) + "\n"
-                    
-            with open(input_ini_path, 'w', encoding='utf-8') as f:
-                f.write(content)
-                
-            loc = get_current_localization()
-            messagebox.showinfo(loc.get_title("instructions"), 
-                               loc.get_instruction("input_ini_manual"))
-            
-        except Exception as e:
-            loc = get_current_localization()
-            messagebox.showerror(loc.get_title("error"), 
-                                loc.get_error("failed_to_create_input_ini", error=str(e)))
+                label.configure(foreground='black', font=font('bold'))
+        self.update_tab_colors()
+
+    def _on_disable_overweight_restriction_change(self):
+        """Called when the disable overweight movement restriction checkbox changes"""
+        if ('MovementParams', 'DisableOverweightMovementRestriction') in self.labels:
+            label = self.labels[('MovementParams', 'DisableOverweightMovementRestriction')]
+            if self.disable_overweight_restriction.get():
+                label.configure(foreground='green', font=font('bold'))
+            else:
+                label.configure(foreground='black', font=font('bold'))
+        self.update_tab_colors()
+
+    def reset_remove_mouse_smoothing(self):
+        self.remove_mouse_smoothing.set(False)
+        self._on_remove_mouse_smoothing_change()
+
+    def reset_disable_overweight_restriction(self):
+        self.disable_overweight_restriction.set(False)
+        self._on_disable_overweight_restriction_change()
+
+    def _on_remove_water_slowdown_change(self):
+        """Called when the remove water slowdown checkbox changes"""
+        if ('MovementParams', 'RemoveWaterSlowdown') in self.labels:
+            label = self.labels[('MovementParams', 'RemoveWaterSlowdown')]
+            if self.remove_water_slowdown.get():
+                label.configure(foreground='green', font=font('bold'))
+            else:
+                label.configure(foreground='black', font=font('bold'))
+        self.update_tab_colors()
+
+    def reset_remove_water_slowdown(self):
+        self.remove_water_slowdown.set(False)
+        self._on_remove_water_slowdown_change()
+
+    def _on_remove_mouse_slowdown_change(self):
+        """Called when the remove mouse slowdown checkbox changes"""
+        if ('Aiming', 'RemoveMouseSlowdown') in self.labels:
+            label = self.labels[('Aiming', 'RemoveMouseSlowdown')]
+            if self.remove_mouse_slowdown.get():
+                label.configure(foreground='green', font=font('bold'))
+            else:
+                label.configure(foreground='black', font=font('bold'))
+        self.update_tab_colors()
+
+    def reset_remove_mouse_slowdown(self):
+        self.remove_mouse_slowdown.set(False)
+        self._on_remove_mouse_slowdown_change()
+
+    def _on_remove_camera_shake_change(self):
+        """Called when the remove camera shake checkbox changes"""
+        if ('Aiming', 'RemoveCameraShake') in self.labels:
+            label = self.labels[('Aiming', 'RemoveCameraShake')]
+            if self.remove_camera_shake.get():
+                label.configure(foreground='green', font=font('bold'))
+            else:
+                label.configure(foreground='black', font=font('bold'))
+        self.update_tab_colors()
+
+    def reset_remove_camera_shake(self):
+        self.remove_camera_shake.set(False)
+        self._on_remove_camera_shake_change()
+
+    def _on_remove_aim_block_change(self):
+        """Called when the remove aim block checkbox changes"""
+        if ('Aiming', 'RemoveAimBlock') in self.labels:
+            label = self.labels[('Aiming', 'RemoveAimBlock')]
+            if self.remove_aim_block.get():
+                label.configure(foreground='green', font=font('bold'))
+            else:
+                label.configure(foreground='black', font=font('bold'))
+        self.update_tab_colors()
+
+    def reset_remove_aim_block(self):
+        self.remove_aim_block.set(False)
+        self._on_remove_aim_block_change()
 
     def setup_section_frame(self, frame, section):
         row = 0
@@ -758,6 +699,43 @@ class ConfigInterface:
             if key not in ['BaseTurnRate', 'BaseLookUpRate']:
                 self.create_movement_control(frame, key, value, row)
                 row += 1
+        
+        # DisableMovementWeightThreshold toggle - named to match the base game's cfg field
+        loc = get_current_localization()
+        
+        overweight_label = ttk.Label(frame, text=loc.get_button('allow_overweight_movement'), font=font('bold'))
+        overweight_label.grid(row=row, column=0, padx=5, pady=2, sticky='e')
+        self.labels[('MovementParams', 'DisableOverweightMovementRestriction')] = overweight_label
+        
+        overweight_check = ttk.Checkbutton(frame, variable=self.disable_overweight_restriction,
+                                         command=self._on_disable_overweight_restriction_change)
+        overweight_check.grid(row=row, column=1, padx=5, pady=2, sticky='w')
+        
+        overweight_default_btn = ttk.Button(frame, text=t("default"), command=self.reset_disable_overweight_restriction)
+        overweight_default_btn.grid(row=row, column=2, padx=5, pady=2, sticky='w')
+        
+        ttk.Label(frame, text=loc.get_label('default_off'), font=font('small')).grid(
+            row=row, column=3, padx=5, pady=2, sticky='w')
+        ttk.Label(frame, text=loc.get_label('disable_overweight_restriction_desc'), font=font('description')).grid(
+            row=row, column=4, padx=5, pady=2, sticky='w')
+        row += 1
+        
+        # Remove Water Slowdown toggle
+        water_label = ttk.Label(frame, text=loc.get_button('remove_water_slowdown'), font=font('bold'))
+        water_label.grid(row=row, column=0, padx=5, pady=2, sticky='e')
+        self.labels[('MovementParams', 'RemoveWaterSlowdown')] = water_label
+        
+        water_check = ttk.Checkbutton(frame, variable=self.remove_water_slowdown,
+                                    command=self._on_remove_water_slowdown_change)
+        water_check.grid(row=row, column=1, padx=5, pady=2, sticky='w')
+        
+        water_default_btn = ttk.Button(frame, text=t("default"), command=self.reset_remove_water_slowdown)
+        water_default_btn.grid(row=row, column=2, padx=5, pady=2, sticky='w')
+        
+        ttk.Label(frame, text=loc.get_label('default_off'), font=font('small')).grid(
+            row=row, column=3, padx=5, pady=2, sticky='w')
+        ttk.Label(frame, text=loc.get_label('remove_water_slowdown_desc'), font=font('description')).grid(
+            row=row, column=4, padx=5, pady=2, sticky='w')
 
     def create_movement_control(self, frame, key, value, row):
         label = ttk.Label(frame, text=key, font=font('bold'))
@@ -796,9 +774,6 @@ class ConfigInterface:
         left_frame = ttk.Frame(controls_frame)
         left_frame.pack(side='left')
         
-        right_frame = ttk.Frame(controls_frame)
-        right_frame.pack(side='right')
-        
         if 'Aiming' in self.config_handler.default_config and 'SyncTurnRate' in self.config_handler.default_config['Aiming']:
             self.sync_sensitivity.set(self.config_handler.default_config['Aiming']['SyncTurnRate'])
         
@@ -807,11 +782,6 @@ class ConfigInterface:
                                    variable=self.sync_sensitivity,
                                    command=self.sync_sensitivity_rates)
         sync_check.pack(side='left')
-        
-        self.mouse_btn = ttk.Button(right_frame, 
-                                  text=self.get_mouse_smoothing_button_text(),
-                                  command=self.toggle_mouse_smoothing)
-        self.mouse_btn.pack(side='right', padx=5)
         
         self.create_aiming_controls(frame)
 
@@ -835,12 +805,56 @@ class ConfigInterface:
             self.default_buttons[('MovementParams', key)] = default_btn
             
             self.add_value_labels(frame, 'MovementParams', key, default_value, row)
+        
+        # Remove Mouse Smoothing toggle - placed under BaseTurnRate/BaseLookUpRate
+        smoothing_row = 3
+        loc = get_current_localization()
+        
+        smoothing_label = ttk.Label(frame, text=loc.get_button("remove_mouse_smoothing"), font=font('bold'))
+        smoothing_label.grid(row=smoothing_row, column=0, padx=5, pady=2, sticky='e')
+        self.labels[('Aiming', 'RemoveMouseSmoothing')] = smoothing_label
+        
+        smoothing_check = ttk.Checkbutton(frame, variable=self.remove_mouse_smoothing,
+                                        command=self._on_remove_mouse_smoothing_change)
+        smoothing_check.grid(row=smoothing_row, column=1, padx=5, pady=2, sticky='w')
+        
+        smoothing_default_btn = ttk.Button(frame, text=t("default"), command=self.reset_remove_mouse_smoothing)
+        smoothing_default_btn.grid(row=smoothing_row, column=2, padx=5, pady=2, sticky='w')
+        
+        ttk.Label(frame, text=loc.get_label('default_off'), font=font('small')).grid(
+            row=smoothing_row, column=3, padx=5, pady=2, sticky='w')
+        
+        # Remove Mouse Slowdown, Remove Camera Shake, Remove Aim Block toggles
+        toggle_defs = [
+            (4, self.remove_mouse_slowdown, self._on_remove_mouse_slowdown_change, self.reset_remove_mouse_slowdown,
+             'RemoveMouseSlowdown', 'remove_mouse_slowdown', 'remove_mouse_slowdown_desc'),
+            (5, self.remove_camera_shake, self._on_remove_camera_shake_change, self.reset_remove_camera_shake,
+             'RemoveCameraShake', 'remove_camera_shake', 'remove_camera_shake_desc'),
+            (6, self.remove_aim_block, self._on_remove_aim_block_change, self.reset_remove_aim_block,
+             'RemoveAimBlock', 'remove_aim_block', 'remove_aim_block_desc'),
+        ]
+        
+        for toggle_row, var, change_handler, reset_handler, label_key, button_key, desc_key in toggle_defs:
+            label = ttk.Label(frame, text=loc.get_button(button_key), font=font('bold'))
+            label.grid(row=toggle_row, column=0, padx=5, pady=2, sticky='e')
+            self.labels[('Aiming', label_key)] = label
+            
+            check = ttk.Checkbutton(frame, variable=var, command=change_handler)
+            check.grid(row=toggle_row, column=1, padx=5, pady=2, sticky='w')
+            
+            default_btn = ttk.Button(frame, text=t("default"), command=reset_handler)
+            default_btn.grid(row=toggle_row, column=2, padx=5, pady=2, sticky='w')
+            
+            ttk.Label(frame, text=loc.get_label('default_off'), font=font('small')).grid(
+                row=toggle_row, column=3, padx=5, pady=2, sticky='w')
+            ttk.Label(frame, text=loc.get_label(desc_key), font=font('description')).grid(
+                row=toggle_row, column=4, padx=5, pady=2, sticky='w')
 
     def sync_sensitivity_rates(self):
         if self.sync_sensitivity.get():
             try:
                 turn_value = self.entries[('MovementParams', 'BaseTurnRate')].get()
-                value = int(turn_value)
+                value = round(float(turn_value))
                 self.entries[('MovementParams', 'BaseLookUpRate')].delete(0, tk.END)
                 self.entries[('MovementParams', 'BaseLookUpRate')].insert(0, str(value))
                 # Use validate_aiming_entry instead of validate_entry for aiming controls
@@ -860,9 +874,16 @@ class ConfigInterface:
         current_value = entry.get()
         
         try:
-            value = int(current_value)
+            # BaseTurnRate/BaseLookUpRate must be whole numbers - round decimals instead of rejecting them
+            value = round(float(current_value))
+            if current_value.strip() != str(value):
+                cursor_pos = entry.index(tk.INSERT)
+                entry.delete(0, tk.END)
+                entry.insert(0, str(value))
+                entry.icursor(min(cursor_pos, len(str(value))))
+                current_value = str(value)
             
-            default_value = str(self.config_handler.default_config['MovementParams'][key])
+            default_value = self.config_handler.default_config['MovementParams'][key]
             
             exceeds_max = False
             if 'MovementParams' in self.config_handler.max_values and key in self.config_handler.max_values['MovementParams']:
@@ -875,13 +896,13 @@ class ConfigInterface:
                     other_entry.delete(0, tk.END)
                     other_entry.insert(0, str(value))
                     other_entry.configure(foreground='red' if exceeds_max else 
-                        ('green' if str(value) != default_value else 'black'))
+                        ('black' if self._is_value_at_default(str(value), default_value) else 'green'))
                     # Update default button state and label color for both entries
                     self.update_default_button_state('MovementParams', rate_key)
                     self.update_label_color('MovementParams', rate_key)
             else:
                 entry.configure(foreground='red' if exceeds_max else 
-                    ('green' if current_value != default_value else 'black'))
+                    ('black' if self._is_value_at_default(current_value, default_value) else 'green'))
                 # Update default button state and label color for this entry
                 self.update_default_button_state('MovementParams', key)
                 self.update_label_color('MovementParams', key)
@@ -898,7 +919,6 @@ class ConfigInterface:
     def validate_entry(self, section, key):
         entry = self.entries[(section, key)]
         current_value = entry.get().strip()
-        default_value = str(self.config_handler.default_config[section][key])
 
         try:
             actual_default_value = self.config_handler.default_config[section][key]
@@ -922,7 +942,7 @@ class ConfigInterface:
                         exceeds_max = True
 
                 entry.configure(foreground='red' if exceeds_max else 
-                              ('green' if current_value != default_value else 'black'))
+                              ('black' if self._is_value_at_default(current_value, actual_default_value) else 'green'))
                 
                 # Update default button state, label color, and tab colors
                 self.update_default_button_state(section, key)
@@ -973,9 +993,9 @@ class ConfigInterface:
     def has_changes(self):
         for (section, key), entry in self.entries.items():
             current_value = entry.get().strip()
-            default_value = str(self.config_handler.default_config[section][key])
+            default_value = self.config_handler.default_config[section][key]
             
-            if current_value != default_value:
+            if not self._is_value_at_default(current_value, default_value):
                 return True
                 
         for (section, key), checkbox in self.checkboxes.items():
@@ -988,6 +1008,17 @@ class ConfigInterface:
         if 'Aiming' in self.config_handler.default_config and 'SyncTurnRate' in self.config_handler.default_config['Aiming']:
             if self.sync_sensitivity.get() != self.config_handler.default_config['Aiming']['SyncTurnRate']:
                 return True
+        
+        if self.remove_mouse_smoothing.get():
+            return True
+        
+        if self.disable_overweight_restriction.get():
+            return True
+        
+        if self.remove_water_slowdown.get() or self.remove_mouse_slowdown.get() or \
+           self.remove_camera_shake.get() or self.remove_aim_block.get():
+            return True
+        
         return False
 
     def update_entries(self, config):
@@ -1001,10 +1032,30 @@ class ConfigInterface:
             default_value = self.config_handler.default_config[section][key]
             checkbox.set(default_value)
 
+        # Reset the opt-in toggles to their defaults (off) before applying the new config
+        self.remove_mouse_smoothing.set(False)
+        self.disable_overweight_restriction.set(False)
+        self.remove_water_slowdown.set(False)
+        self.remove_mouse_slowdown.set(False)
+        self.remove_camera_shake.set(False)
+        self.remove_aim_block.set(False)
+        
         for section in config:
             for key, value in config[section].items():
                 if section == 'Aiming' and key == 'SyncTurnRate':
                     self.sync_sensitivity.set(value)
+                elif section == 'Aiming' and key == 'RemoveMouseSmoothing':
+                    self.remove_mouse_smoothing.set(value)
+                elif section == 'Aiming' and key == 'RemoveMouseSlowdown':
+                    self.remove_mouse_slowdown.set(value)
+                elif section == 'Aiming' and key == 'RemoveCameraShake':
+                    self.remove_camera_shake.set(value)
+                elif section == 'Aiming' and key == 'RemoveAimBlock':
+                    self.remove_aim_block.set(value)
+                elif section == 'MovementParams' and key == 'DisableOverweightMovementRestriction':
+                    self.disable_overweight_restriction.set(value)
+                elif section == 'MovementParams' and key == 'RemoveWaterSlowdown':
+                    self.remove_water_slowdown.set(value)
                 elif isinstance(value, bool):
                     if (section, key) in self.checkboxes:
                         self.checkboxes[(section, key)].set(value)
@@ -1017,6 +1068,12 @@ class ConfigInterface:
         
         # Update all default button states and tab colors after loading configuration
         self.update_all_default_button_states()
+        self._on_remove_mouse_smoothing_change()
+        self._on_disable_overweight_restriction_change()
+        self._on_remove_water_slowdown_change()
+        self._on_remove_mouse_slowdown_change()
+        self._on_remove_camera_shake_change()
+        self._on_remove_aim_block_change()
         self.update_tab_colors()
 
     def get_current_config(self, include_defaults=False):
@@ -1031,8 +1088,11 @@ class ConfigInterface:
                             changed_values[key] = current_value
                     else:
                         current_value = self.entries[(section, key)].get()
-                        default_value = str(value)
-                        if include_defaults or current_value != default_value:
+                        # StaminaDisableThreshold is an opt-in override, not a normal
+                        # tunable value, so Force Defaults should never write it unless
+                        # the user actually changed it themselves.
+                        force_include = include_defaults and key != 'StaminaDisableThreshold'
+                        if force_include or not self._is_value_at_default(current_value, value):
                             try:
                                 if '.' in current_value:
                                     changed_values[key] = float(current_value)
@@ -1046,7 +1106,24 @@ class ConfigInterface:
                 if changed_values:
                     config[section] = changed_values
 
+        aiming_settings = {}
         if self.sync_sensitivity.get():
-            config['Aiming'] = {'SyncTurnRate': True}
+            aiming_settings['SyncTurnRate'] = True
+        if self.remove_mouse_smoothing.get():
+            aiming_settings['RemoveMouseSmoothing'] = True
+        if self.remove_mouse_slowdown.get():
+            aiming_settings['RemoveMouseSlowdown'] = True
+        if self.remove_camera_shake.get():
+            aiming_settings['RemoveCameraShake'] = True
+        if self.remove_aim_block.get():
+            aiming_settings['RemoveAimBlock'] = True
+        if aiming_settings:
+            config['Aiming'] = aiming_settings
+        
+        if self.disable_overweight_restriction.get():
+            config.setdefault('MovementParams', {})['DisableOverweightMovementRestriction'] = True
+        
+        if self.remove_water_slowdown.get():
+            config.setdefault('MovementParams', {})['RemoveWaterSlowdown'] = True
 
         return config

@@ -90,7 +90,7 @@ class ModCreator:
                                   loc.get_warning("incompatible_mods_detected", 
                                                  mod_list="\n".join(found_mods)))
 
-    def create_mod(self, config, mods_path):
+    def create_mod(self, config, mods_path, parent=None):
         # Check for incompatible mods first
         self.check_incompatible_mods(mods_path)
         
@@ -116,26 +116,59 @@ class ModCreator:
             temp_build_dir = tempfile.mkdtemp(prefix='pak_mod_builder')
             
             # Enforce all config keys must be present
-            required_keys = ['mod_folder_name', 'cfg_folder_name', 'cfg_file_name']
+            required_keys = ['mod_folder_name', 'cfg_folder_name', 'cfg_files']
             for key in required_keys:
                 if key not in self.mod_config:
                     raise KeyError(f"'{key}' missing in mod_config.json or database. Please provide all required keys.")
             mod_folder = self.mod_config['mod_folder_name']
-            cfg_folder = self.mod_config['cfg_folder_name']
-            cfg_file = self.mod_config['cfg_file_name']
             
-            mod_path = Path(temp_build_dir) / mod_folder / 'Stalker2' / 'Content' / 'GameLite' / 'GameData' / 'ObjPrototypes' / cfg_folder
-            mod_path.mkdir(parents=True, exist_ok=True)
+            aiming_config = config.pop('Aiming', {})
+            remove_mouse_smoothing = bool(aiming_config.get('RemoveMouseSmoothing', False))
+            remove_mouse_slowdown = bool(aiming_config.get('RemoveMouseSlowdown', False))
+            remove_camera_shake = bool(aiming_config.get('RemoveCameraShake', False))
+            remove_aim_block = bool(aiming_config.get('RemoveAimBlock', False))
             
-            if 'Aiming' in config:
-                del config['Aiming']
+            stamina_disable_threshold = None
+            if 'VitalParams' in config and 'StaminaDisableThreshold' in config['VitalParams']:
+                stamina_disable_threshold = config['VitalParams'].pop('StaminaDisableThreshold')
+                if not config['VitalParams']:
+                    del config['VitalParams']
             
-            cfg_content = self._generate_cfg_content(config)
+            disable_overweight_restriction = False
+            if 'MovementParams' in config and 'DisableOverweightMovementRestriction' in config['MovementParams']:
+                disable_overweight_restriction = bool(config['MovementParams'].pop('DisableOverweightMovementRestriction'))
             
-            with open(mod_path / cfg_file, 'w', encoding='utf-8') as f:
-                f.write(cfg_content)
+            remove_water_slowdown = False
+            if 'MovementParams' in config and 'RemoveWaterSlowdown' in config['MovementParams']:
+                remove_water_slowdown = bool(config['MovementParams'].pop('RemoveWaterSlowdown'))
             
-            self._run_repak(mods_path, repak_path, temp_build_dir)
+            if 'MovementParams' in config and not config['MovementParams']:
+                del config['MovementParams']
+            
+            section_patches, player_patches = self._generate_player_patches(
+                stamina_disable_threshold, disable_overweight_restriction, remove_water_slowdown,
+                remove_mouse_slowdown)
+            
+            # Only write Player.cfg if there's actually something to patch - avoids
+            # shipping an empty "Player : struct.begin {bpatch} struct.end" file
+            # when only an EffectPrototypes/CameraShakePrototypes toggle is checked.
+            if config or section_patches or player_patches:
+                cfg_content = self._generate_cfg_content(config, section_patches, player_patches)
+                self._write_gamedata_cfg(temp_build_dir, mod_folder, 'ObjPrototypes', cfg_content)
+            
+            if remove_mouse_smoothing:
+                self._write_user_input_ini(temp_build_dir, mod_folder)
+            
+            effect_content = self._generate_effect_prototypes_content(
+                remove_mouse_slowdown, remove_camera_shake, remove_aim_block)
+            if effect_content:
+                self._write_gamedata_cfg(temp_build_dir, mod_folder, 'EffectPrototypes', effect_content)
+            
+            camera_shake_content = self._generate_camera_shake_prototypes_content(remove_camera_shake)
+            if camera_shake_content:
+                self._write_gamedata_cfg(temp_build_dir, mod_folder, 'CameraShakePrototypes', camera_shake_content)
+            
+            self._run_repak(mods_path, repak_path, temp_build_dir, parent=parent)
             
         except Exception as e:
             # Clean up temp directory if there's an error
@@ -146,6 +179,109 @@ class ModCreator:
             # Always clean up temp directory
             if temp_build_dir and os.path.exists(temp_build_dir):
                 shutil.rmtree(temp_build_dir)
+
+    def _write_user_input_ini(self, temp_build_dir, mod_folder):
+        """Write a UserInput.ini that disables mouse smoothing, same approach as FMAO"""
+        input_ini_dir = Path(temp_build_dir) / mod_folder / 'Stalker2' / 'Config'
+        input_ini_dir.mkdir(parents=True, exist_ok=True)
+        
+        content = "[/Script/Engine.InputSettings]\n"
+        content += "bViewAccelerationEnabled=False\n"
+        content += "bEnableMouseSmoothing=False\n"
+        
+        with open(input_ini_dir / 'UserInput.ini', 'w', encoding='utf-8') as f:
+            f.write(content)
+
+    def _write_gamedata_cfg(self, temp_build_dir, mod_folder, gamedata_category, content):
+        """
+        Write a {bpatch} cfg file into GameData/<gamedata_category>/<cfg_folder>/<filename>.
+        The cfg folder and filename both come from mod_config.json's cfg_files map, so
+        adding a new GameData category later is just one new entry there plus a
+        _generate_..._content() method - no filenames hardcoded here.
+        """
+        cfg_folder = self.mod_config['cfg_folder_name']
+        cfg_files = self.mod_config.get('cfg_files', {})
+        filename = cfg_files.get(gamedata_category)
+        if not filename:
+            raise KeyError(f"No cfg filename configured for GameData category '{gamedata_category}' "
+                            f"in mod_config.json's cfg_files map.")
+        
+        target_dir = (Path(temp_build_dir) / mod_folder / 'Stalker2' / 'Content' / 'GameLite' / 'GameData'
+                       / gamedata_category / cfg_folder)
+        target_dir.mkdir(parents=True, exist_ok=True)
+        
+        with open(target_dir / filename, 'w', encoding='utf-8') as f:
+            f.write(content)
+
+    def _generate_effect_prototypes_content(self, remove_mouse_slowdown, remove_camera_shake, remove_aim_block):
+        """
+        Build removenode lines for GameData/EffectPrototypes. These SIDs are
+        top-level structs in EffectPrototypes.cfg, so no {bpatch}/struct.begin
+        wrapper is needed - each line is its own root-level patch.
+        """
+        lines = []
+        
+        if remove_mouse_slowdown:
+            # Look/turn-rate multipliers only - no camera shake, no aim block
+            lines += [
+                "ConcussionModifyRotate2DAxis", "ConcussionInputInertia2DAxis",
+                "ControllerConcussionModifyRotate2DAxis", "ControllerConcussionInputInertia2DAxis",
+                "ConcussionModifyRotate2DAxis_2", "ConcussionInputInertia2DAxis_2",
+                "ConcussionModifyRotate2DAxis_Buttstock", "ConcussionInputInertia2DAxis_Buttstock",
+                "ChemicalAnomalyTurnRateChangeYaw", "ChemicalAnomalyTurnRateChangePitch",
+                "FlycatcherTurnRateChangeYaw", "FlycatcherTurnRateChangePitch",
+                "BarbedWireTurnRateChangeYaw", "BarbedWireTurnRateChangePitch",
+            ]
+        
+        if remove_aim_block:
+            lines += ["ConcussionBlockAim", "ConcussionBlockAim_2", "ConcussionBlockAim_Buttstock"]
+        
+        if remove_camera_shake:
+            lines += [
+                "ConcussionCameraShake", "ConcussionCameraShake_2", "ButtStroke_CameraShake",
+                "ProjectileCameraShakeInstant", "MutantAttackCameraShake", "MutantMediumAttackCameraShake",
+                "MutantStrongAttackCameraShake", "DrunknessCameraShake", "PoppyFieldCameraShake",
+                "ControllerCameraShake", "EmissionCameraShake", "QuestDugaFall_CameraShake",
+                "QuestDugaActive_CameraShake", "PlatformElevation_CameraShake", "Binoculars01AimCameraShake",
+                "Binoculars02AimCameraShake", "Binoculars03AimCameraShake", "PSYAnomalyCamera",
+            ]
+        
+        if not lines:
+            return ""
+        
+        content = "\n".join(f"{sid} : removenode" for sid in lines) + "\n\n"
+        content += "// Generated by SCAM (Stalker Character Adjustment Manager) by v3fish\n"
+        content += "// Personal use only - redistribution requires author permission\n"
+        return content
+
+    def _generate_camera_shake_prototypes_content(self, remove_camera_shake):
+        """Build removenode lines for GameData/CameraShakePrototypes (shake assets, includes gunfire)."""
+        if not remove_camera_shake:
+            return ""
+        
+        shake_assets = [
+            "ShootingCameraShake", "PMShootCameraShake", "UDPShootCameraShake", "ViperShootCameraShake",
+            "AKUShootCameraShake", "AK74ShootCameraShake", "M16ShootCameraShake", "ObrezShootCameraShake",
+            "TozShootCameraShake", "M860ShootCameraShake", "M10ShootCameraShake", "BucketShootCameraShake",
+            "SVDMShootCameraShake", "M701ShootCameraShake", "IntegralShootCameraShake", "G37ShootCameraShake",
+            "ForaShootCameraShake", "PKPShootCameraShake", "GaussShootCameraShake", "ZubrShootCameraShake",
+            "LavinaShootCameraShake", "RPGShootCameraShake", "SPSAShootCameraShake", "D12ShootCameraShake",
+            "Ram2ShootCameraShake", "APBShootCameraShake", "RhinoShootCameraShake", "SVUShootCameraShake",
+            "GrimShootCameraShake", "DniproShootCameraShake", "MarkShootCameraShake", "KharodShootCameraShake",
+            "KoraShootCameraShake", "ThreeLineShootCameraShake", "ArevShootCameraShake", "SKPShootCameraShake",
+            "Fora230ShootCameraShake", "GP3AShootCameraShake", "SVUSQBShootCameraShake", "DummyShootCameraShake",
+            "MutantAttackCameraShake", "MutantMediumAttackCameraShake", "MutantStrongAttackCameraShake",
+            "ProjectileHitCameraShake", "ButtStrokeCameraShake", "ZulusMeleeAttackCameraShake",
+            "ZulusChargeAttackCameraShake", "ZulusFinishAttackCameraShake", "ZulusRunAttackCameraShake",
+            "PlatformElevationCameraShake", "DrunkCameraShake", "PoppyFieldCameraShake", "ConcussionCameraShake",
+            "ControllerCameraShake", "ConcussionCameraShake_2", "EmissionCameraShake",
+            "Binoculars01AimCameraShake", "Binoculars02AimCameraShake", "Binoculars03AimCameraShake",
+        ]
+        
+        content = "\n".join(f"{asset} : removenode" for asset in shake_assets) + "\n\n"
+        content += "// Generated by SCAM (Stalker Character Adjustment Manager) by v3fish\n"
+        content += "// Personal use only - redistribution requires author permission\n"
+        return content
 
     def _find_repak(self):
         """Find repak.exe in the correct location only"""
@@ -166,13 +302,71 @@ class ModCreator:
 
         return None
 
-    def _generate_cfg_content(self, config):
+    def _format_cfg_value(self, value):
+        if isinstance(value, bool):
+            return str(value).lower()
+        return value
+
+    def _generate_player_patches(self, stamina_disable_threshold, disable_overweight_restriction,
+                                  remove_water_slowdown=False, remove_mouse_slowdown=False):
+        """
+        Build raw cfg snippets for Player-level struct patches that don't fit the
+        generic flat section format (nested arrays / removenode).
+        
+        Returns (section_patches, player_patches):
+          - section_patches: {section_name: extra raw lines to merge into that
+            section's existing struct.begin {bpatch} block instead of opening a
+            second, duplicate block for the same section.
+          - player_patches: raw lines that go directly under Player, for keys
+            that aren't part of any existing section.
+        """
+        section_patches = {}
+        player_patches = ""
+        
+        if stamina_disable_threshold is not None:
+            # Player -> VitalParams -> StaminaDisableThresholds -> [0].Threshold
+            # {bpatch} is required at every nested level so RegenerationDelay/StateTags
+            # on [0] are preserved instead of being wiped out.
+            lines = "      StaminaDisableThresholds : struct.begin {bpatch}\n"
+            lines += "         [0] : struct.begin {bpatch}\n"
+            lines += f"            Threshold = {self._format_cfg_value(stamina_disable_threshold)}\n"
+            lines += "         struct.end\n"
+            lines += "      struct.end\n"
+            section_patches['VitalParams'] = lines
+        
+        if disable_overweight_restriction:
+            # Player's DisableMovementWeightThreshold only has a single [0] entry
+            # (Overweight, blocking movement). Removing it lets you move freely
+            # no matter how overweight you are.
+            player_patches += "   DisableMovementWeightThreshold : struct.begin {bpatch}\n"
+            player_patches += "      [0] : removenode\n"
+            player_patches += "   struct.end\n"
+        
+        # Player -> WaterContactInfo -> Single/DualCurveEffects. Single = look/aim
+        # slowdown (belongs to Remove Mouse Slowdown), Dual = walk-in-water movement
+        # slowdown (belongs to Remove Water Slowdown). Merge into one block since
+        # both toggles can be checked at once.
+        water_fields = ""
+        if remove_mouse_slowdown:
+            water_fields += "      SingleCurveEffects : removenode\n"
+        if remove_water_slowdown:
+            water_fields += "      DualCurveEffects : removenode\n"
+        if water_fields:
+            player_patches += "   WaterContactInfo : struct.begin {bpatch}\n"
+            player_patches += water_fields
+            player_patches += "   struct.end\n"
+        
+        return section_patches, player_patches
+
+    def _generate_cfg_content(self, config, section_patches=None, player_patches=""):
+        section_patches = section_patches or {}
         content = "Player : struct.begin {bpatch}\n"
         
-        # Handle SpendStaminaInSafeZone as a special case - it goes directly under PlayerCustom
+        # Handle SpendStaminaInSafeZone as a special case - it goes directly under Player
         if 'StaminaPerAction' in config and 'SpendStaminaInSafeZone' in config['StaminaPerAction']:
-            content += f"SpendStaminaInSafeZone = {config['StaminaPerAction']['SpendStaminaInSafeZone']}\n"
+            content += f"SpendStaminaInSafeZone = {self._format_cfg_value(config['StaminaPerAction']['SpendStaminaInSafeZone'])}\n"
         
+        handled_sections = set()
         for section, values in config.items():
             # Create a copy of values to avoid modifying the original
             section_values = values.copy()
@@ -181,36 +375,56 @@ class ModCreator:
             if section == 'StaminaPerAction' and 'SpendStaminaInSafeZone' in section_values:
                 section_values.pop('SpendStaminaInSafeZone')
             
-            # Only create the section if there are still values left
-            if section_values:
+            handled_sections.add(section)
+            
+            # Only create the section if there are still values left, or a patch needs it
+            if section_values or section in section_patches:
                 content += f"   {section} : struct.begin {{bpatch}}\n"
                 for key, value in section_values.items():
-                    content += f"      {key} = {value}\n"
+                    content += f"      {key} = {self._format_cfg_value(value)}\n"
+                if section in section_patches:
+                    content += section_patches[section]
                 content += "   struct.end\n"
+        
+        # Sections that only exist because of a patch (e.g. VitalParams has no
+        # normal settings changed, only StaminaDisableThreshold)
+        for section, patch in section_patches.items():
+            if section not in handled_sections:
+                content += f"   {section} : struct.begin {{bpatch}}\n"
+                content += patch
+                content += "   struct.end\n"
+        
+        if player_patches:
+            content += player_patches
         
         content += "struct.end\n\n"
         content += "// Generated by SCAM (Stalker Character Adjustment Manager) by v3fish\n"
         content += "// Personal use only - redistribution requires author permission\n"
         return content
 
-    def _run_repak(self, mods_path, repak_path, temp_build_dir):
+    def _run_repak(self, mods_path, repak_path, temp_build_dir, parent=None):
         try:
             # Show progress dialog during repak execution
             import tkinter as tk
             from tkinter import ttk
             
-            # Create progress window
-            progress_window = tk.Toplevel()
+            # Create progress window on the same screen as SCAM
+            progress_window = tk.Toplevel(parent) if parent is not None else tk.Toplevel()
             progress_window.title("Creating Mod")
             progress_window.geometry("300x100")
             progress_window.resizable(False, False)
-            progress_window.transient()
+            if parent is not None:
+                progress_window.transient(parent)
             progress_window.grab_set()
             
-            # Center the window
             progress_window.update_idletasks()
-            x = (progress_window.winfo_screenwidth() // 2) - (150)
-            y = (progress_window.winfo_screenheight() // 2) - (50)
+            if parent is not None:
+                parent.update_idletasks()
+                x = parent.winfo_x() + (parent.winfo_width() // 2) - 150
+                y = parent.winfo_y() + (parent.winfo_height() // 2) - 50
+            else:
+                x = (progress_window.winfo_screenwidth() // 2) - 150
+                y = (progress_window.winfo_screenheight() // 2) - 50
             progress_window.geometry(f"+{x}+{y}")
             
             # Add content

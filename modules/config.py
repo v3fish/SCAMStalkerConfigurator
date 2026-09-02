@@ -80,6 +80,20 @@ class ConfigHandler:
         prefs['last_settings'] = {}
         self.save_preferences(prefs)
 
+    def get_window_prefs(self):
+        """Saved main-window geometry and state."""
+        window = self.load_preferences().get('window')
+        return window if isinstance(window, dict) else {}
+
+    def set_window_prefs(self, geometry, state):
+        """Save main-window geometry without touching other preferences."""
+        prefs = self.load_preferences()
+        prefs['window'] = {
+            'geometry': geometry,
+            'state': state,
+        }
+        self.save_preferences(prefs)
+
     def load_default_config(self):
         config = configparser.ConfigParser()
         config.optionxform = str

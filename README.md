@@ -6,10 +6,11 @@ GUI tool for S.T.A.L.K.E.R. 2: Heart of Chornobyl to configure character movemen
 - Save and load custom presets
 - Built-in recommended configurations
 - Automatic mod creation and installation
-- Mouse smoothing/acceleration removal
+- Input and movement toggles (mouse smoothing, slowdown, camera shake, and more)
 - XY Sensitivity Fix included
 - Multilingual support (5 languages)
 - Compatible with other mods
+- Verified for Stalker 2.0
 
 [![Nexus Mods](https://img.shields.io/badge/Nexus%20Mods-SCAM-orange)](https://www.nexusmods.com/stalker2heartofchornobyl/mods/672)
 
@@ -24,10 +25,10 @@ You can download SCAM from either:
 ## Usage
 
 1. Extract all files to a location of your choice
-2. Run `Stalker Configurator Aiming Movement.exe`
-4. Set your game directory (required for automatic mod installation)
-5. Adjust settings or load a preset
-7. Click "Create Mod" to generate and install the mod
+2. Run `Stalker Character Adjustment Manager.exe`
+3. Set your game directory (required for automatic mod installation)
+4. Adjust settings or load a preset
+5. Click "Create Mod" to generate and install the mod
 
 ### Game Directory Examples
 
@@ -46,9 +47,10 @@ Xbox: C:\XboxGames\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\Content
 - Vaulting System: Customize vaulting angles, distances, and obstacle height limits
 - Movement Speed: Adjust walking, crouching, and air control coefficients
 - Jump Mechanics: Configure jump heights and movement modifiers
+- Toggles: Allow movement while overweight, remove water movement slowdown
 ### Aiming & Controls
 - Mouse Sensitivity: Fine-tune horizontal and vertical look rates
-- Input Enhancement: Remove mouse smoothing and acceleration for precise aiming
+- Input Enhancement: Toggles for mouse smoothing, mouse slowdown, camera shake, and aim block removal
 - Sync Option: Synchronize turn and look rates for consistent sensitivity
 ### Preset Management
 - Built-in Presets: Access Default, V3Fish Recommended, and XY Sensitivity Fix configurations
@@ -56,6 +58,7 @@ Xbox: C:\XboxGames\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\Content
 - Quick Switching: Easily swap between different setups
 ### Mod Integration
 - Auto-Installation: Direct mod installation to your S.T.A.L.K.E.R. 2 directory
+- Conflict Detection: Warns about incompatible mods before installation
 - Advanced Options: Force default values to prevent other mods from overriding settings
 ### Multilingual Support
 - 5 Languages: English, Russian, Ukrainian, Korean, and Chinese localizations
@@ -73,23 +76,24 @@ This tool uses the following third-party components:
   - Apache License 2.0
 - Original source: https://github.com/trumank/repak
 
-Full license texts can be found in the `repak` directory of this distribution.
+Full license texts can be found in the `data/repak` directory of this distribution.
 
 ## Installation Requirements
 
 - Windows 10 or newer
-- .NET Framework 4.7.2 or newer
 - S.T.A.L.K.E.R. 2: Heart of Chornobyl game installation
 
 ## Directory Structure
 
 ```
 📁 Installation Folder
-   └─📄 Stalker Configurator Aiming Movement.exe
-   └─📁 repak
-      └─📄 repak.exe
-        📄 LICENSE-APACHE
-        📄 LICENSE-MIT
+   └─📄 Stalker Character Adjustment Manager.exe
+   └─📁 data
+      └─📄 default_config.db
+      └─📁 repak
+         └─📄 repak.exe
+           📄 LICENSE-APACHE
+           📄 LICENSE-MIT
 ```
 
 ## Mod Installation Location

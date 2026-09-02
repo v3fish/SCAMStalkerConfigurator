@@ -53,14 +53,19 @@ BUTTONS = {
     "save": "保存",
     "new_preset": "新建预设",
     "open_presets_folder": "打开预设文件夹",
+    "refresh_presets": "刷新",
     "create_mod": "创建模组",
     "update_mod": "更新模组", 
     "remove_mod": "移除模组",
     "default": "默认",
     "browse": "浏览",
     "open_mod_directory": "打开模组目录",
-    "remove_mouse_smoothing": "移除鼠标平滑",
-    "re_enable_mouse_smoothing": "重新启用鼠标平滑",
+    "remove_mouse_smoothing": "禁用鼠标平滑",
+    "remove_water_slowdown": "移除水中减速",
+    "remove_mouse_slowdown": "移除鼠标减速",
+    "remove_camera_shake": "移除镜头晃动",
+    "remove_aim_block": "移除瞄准阻断",
+    "allow_overweight_movement": "允许负重时移动",
     "language": "语言"
 }
 
@@ -82,7 +87,12 @@ LABELS = {
     "max_value": "最大值：{max}",
     "generated_by": "由 SCAM（潜行者角色调整管理器）v3fish 生成",
     "select_language": "选择语言：",
-    "language_restart_note": "语言将在重启应用程序后更改。"
+    "language_restart_note": "语言将在重启应用程序后更改。",
+    "disable_overweight_restriction_desc": "移除负重时的移动阻断",
+    "remove_water_slowdown_desc": "移除在水中行走时的移动减速",
+    "remove_mouse_slowdown_desc": "移除视角减速（水中、手榴弹、异常区域、铁丝网等）",
+    "remove_camera_shake_desc": "移除所有镜头晃动效果（醉酒、开枪、变异体等）",
+    "remove_aim_block_desc": "移除脑震荡（手榴弹等）期间的瞄准阻断"
 }
 
 # Language names (in their native script)
@@ -123,7 +133,7 @@ SUCCESS_MESSAGES = {
 WARNING_MESSAGES = {
     "make_changes_before_saving": "保存预设前请先进行更改！",
     "make_changes_before_creating": "创建模组前请先进行更改！",
-    "incompatible_mods_detected": """看起来您已安装了流体移动瞄准大修模组。
+    "incompatible_mods_detected": """看起来您已安装了 Fluid Movement Aiming Overhaul。
 
 请在游戏前移除这些模组：
 {mod_list}
@@ -144,8 +154,6 @@ Steam：C:\\Program Files (x86)\\Steam\\steamapps\\common\\S.T.A.L.K.E.R. 2 Hear
 Xbox：C:\\XboxGames\\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\\Content""",
     "failed_to_create_mod": "创建模组失败：{error}",
     "failed_to_remove_mod": "移除模组失败：{error}",
-    "failed_to_update_input_ini": "更新 Input.ini 失败：{error}",
-    "failed_to_create_input_ini": "创建 Input.ini 失败：{error}",
     "failed_to_run_repak": "运行 repak 失败：{error}",
     "error_during_mod_creation": "创建模组期间出错：{error}",
     "repak_not_found": """找不到 repak.exe！Repak 应该在 {data_folder}/repak 文件夹中。
@@ -177,17 +185,7 @@ CONFIRMATIONS = {
 }
 
 # Instructions and help text
-INSTRUCTIONS = {
-    "input_ini_manual": """SCAM 无法找到潜行者 2 配置位置。
-
-已在当前文件夹中创建 Input.ini 文件。
-
-请将此 Input.ini 文件复制到以下位置之一：
-• Steam：%LOCALAPPDATA%\\Stalker2\\Saved\\Config\\Windows
-• Xbox：%LOCALAPPDATA%\\Stalker2\\Saved\\Config\\WinGDK"""
-}
+INSTRUCTIONS = {}
 
 # Status indicators  
-STATUS = {
-    "mouse_smoothing_success": "鼠标平滑设置已 {action}"
-} 
+STATUS = {}

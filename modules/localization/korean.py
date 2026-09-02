@@ -53,14 +53,19 @@ BUTTONS = {
     "save": "저장",
     "new_preset": "새 프리셋",
     "open_presets_folder": "프리셋 폴더 열기",
+    "refresh_presets": "새로고침",
     "create_mod": "모드 생성",
     "update_mod": "모드 업데이트", 
     "remove_mod": "모드 제거",
     "default": "기본값",
     "browse": "찾아보기",
     "open_mod_directory": "모드 디렉터리 열기",
-    "remove_mouse_smoothing": "마우스 스무딩 제거",
-    "re_enable_mouse_smoothing": "마우스 스무딩 다시 활성화",
+    "remove_mouse_smoothing": "마우스 스무딩 비활성화",
+    "remove_water_slowdown": "물 속 둔화 제거",
+    "remove_mouse_slowdown": "마우스 둔화 제거",
+    "remove_camera_shake": "카메라 흔들림 제거",
+    "remove_aim_block": "조준 차단 제거",
+    "allow_overweight_movement": "과적 이동 허용",
     "language": "언어"
 }
 
@@ -82,7 +87,12 @@ LABELS = {
     "max_value": "최대: {max}",
     "generated_by": "SCAM (스토커 캐릭터 조정 관리자) v3fish 제작",
     "select_language": "언어 선택:",
-    "language_restart_note": "언어는 애플리케이션을 다시 시작한 후 변경됩니다."
+    "language_restart_note": "언어는 애플리케이션을 다시 시작한 후 변경됩니다.",
+    "disable_overweight_restriction_desc": "과적 시 이동 차단을 제거합니다",
+    "remove_water_slowdown_desc": "물 속을 걸을 때의 이동 둔화를 제거합니다",
+    "remove_mouse_slowdown_desc": "시야 둔화를 제거합니다 (물, 수류탄, 이상현상, 철조망 등)",
+    "remove_camera_shake_desc": "모든 카메라 흔들림 효과를 제거합니다 (취기, 총격, 변종 등)",
+    "remove_aim_block_desc": "뇌진탕(수류탄 등) 중 조준 차단을 제거합니다"
 }
 
 # Language names (in their native script)
@@ -144,8 +154,6 @@ Steam: C:\\Program Files (x86)\\Steam\\steamapps\\common\\S.T.A.L.K.E.R. 2 Heart
 Xbox: C:\\XboxGames\\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\\Content""",
     "failed_to_create_mod": "모드 생성에 실패했습니다: {error}",
     "failed_to_remove_mod": "모드 제거에 실패했습니다: {error}",
-    "failed_to_update_input_ini": "Input.ini 업데이트에 실패했습니다: {error}",
-    "failed_to_create_input_ini": "Input.ini 생성에 실패했습니다: {error}",
     "failed_to_run_repak": "repak 실행에 실패했습니다: {error}",
     "error_during_mod_creation": "모드 생성 중 오류가 발생했습니다: {error}",
     "repak_not_found": """repak.exe를 찾을 수 없습니다! Repak은 {data_folder}/repak 폴더에 있어야 합니다.
@@ -177,17 +185,7 @@ CONFIRMATIONS = {
 }
 
 # Instructions and help text
-INSTRUCTIONS = {
-    "input_ini_manual": """SCAM이 스토커 2 설정 위치를 찾을 수 없었습니다.
-
-Input.ini 파일이 현재 폴더에 생성되었습니다.
-
-이 Input.ini 파일을 다음 위치 중 하나에 복사해주세요:
-• Steam: %LOCALAPPDATA%\\Stalker2\\Saved\\Config\\Windows
-• Xbox: %LOCALAPPDATA%\\Stalker2\\Saved\\Config\\WinGDK"""
-}
+INSTRUCTIONS = {}
 
 # Status indicators  
-STATUS = {
-    "mouse_smoothing_success": "마우스 스무딩 설정이 {action}되었습니다"
-} 
+STATUS = {}

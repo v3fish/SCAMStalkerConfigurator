@@ -53,14 +53,19 @@ BUTTONS = {
     "save": "Зберегти",
     "new_preset": "Новий пресет",
     "open_presets_folder": "Відкрити папку пресетів",
+    "refresh_presets": "Оновити",
     "create_mod": "Створити мод",
     "update_mod": "Оновити мод", 
     "remove_mod": "Видалити мод",
     "default": "За замовчуванням",
     "browse": "Огляд",
     "open_mod_directory": "Відкрити папку мода",
-    "remove_mouse_smoothing": "Видалити згладжування миші",
-    "re_enable_mouse_smoothing": "Увімкнути згладжування миші",
+    "remove_mouse_smoothing": "Вимкнути згладжування миші",
+    "remove_water_slowdown": "Прибрати сповільнення у воді",
+    "remove_mouse_slowdown": "Прибрати сповільнення миші",
+    "remove_camera_shake": "Прибрати тряску камери",
+    "remove_aim_block": "Прибрати блокування прицілювання",
+    "allow_overweight_movement": "Дозволити рух при перевантаженні",
     "language": "Мова"
 }
 
@@ -75,14 +80,19 @@ LABELS = {
     "example_paths": "Приклади шляхів:",
     "steam_path": "Steam: C:\\Program Files (x86)\\Steam\\steamapps\\common\\S.T.A.L.K.E.R. 2 Heart of Chornobyl",
     "xbox_path": "Xbox: C:\\XboxGames\\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\\Content",
-    "advanced_force_defaults": "Розширені налаштування: Включити всі значення за замовчуванням у файл мода. Використовуйте лише якщо потрібно запобігти зміні інших модів певних значень за замовчуванням.",
+    "advanced_force_defaults": "Розширені налаштування: Включити всі значення за замовчуванням у файл мода. Використовуйте лише якщо потрібно запобігти зміні певних значень за замовчуванням іншими модами.",
     "default_on": "За замовчуванням: Увімк",
     "default_off": "За замовчуванням: Вимк",
     "default_value": "За замовчуванням: {value}",
     "max_value": "Макс: {max}",
     "generated_by": "Створено SCAM (Stalker Character Adjustment Manager) від v3fish",
     "select_language": "Оберіть мову:",
-    "language_restart_note": "Мова зміниться після перезапуску програми."
+    "language_restart_note": "Мова зміниться після перезапуску програми.",
+    "disable_overweight_restriction_desc": "Прибирає блокування руху при перевантаженні",
+    "remove_water_slowdown_desc": "Прибирає сповільнення руху під час ходьби у воді",
+    "remove_mouse_slowdown_desc": "Прибирає сповільнення погляду (вода, гранати, аномалії, колючий дріт тощо)",
+    "remove_camera_shake_desc": "Прибирає всі ефекти тряски камери (сп'яніння, стрільба, мутанти тощо)",
+    "remove_aim_block_desc": "Прибирає блокування прицілювання під час контузії (гранати тощо)"
 }
 
 # Language names (in their native script)
@@ -144,8 +154,6 @@ Steam: C:\\Program Files (x86)\\Steam\\steamapps\\common\\S.T.A.L.K.E.R. 2 Heart
 Xbox: C:\\XboxGames\\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\\Content""",
     "failed_to_create_mod": "Не вдалося створити мод: {error}",
     "failed_to_remove_mod": "Не вдалося видалити мод: {error}",
-    "failed_to_update_input_ini": "Не вдалося оновити Input.ini: {error}",
-    "failed_to_create_input_ini": "Не вдалося створити Input.ini: {error}",
     "failed_to_run_repak": "Не вдалося запустити repak: {error}",
     "error_during_mod_creation": "Помилка при створенні мода: {error}",
     "repak_not_found": """repak.exe не знайдено! Repak повинен бути в папці {data_folder}/repak.
@@ -169,7 +177,7 @@ Stalker Character Adjustment Manager.exe
 CONFIRMATIONS = {
     "overwrite_preset": "Хочете перезаписати пресет '{preset}'?",
     "remove_mod": "Ви впевнені, що хочете видалити мод?",
-    "force_defaults_warning": """Увімкнено опцію 'Примусові значення за замовчуванням'. Це включить УСІ значення у файл мода, включно з незміненими. Це розширена опція, яка повинна використовуватися лише якщо потрібно запобігти зміні інших модів значень за замовчуванням.
+    "force_defaults_warning": """Увімкнено опцію 'Примусові значення за замовчуванням'. Це включить УСІ значення у файл мода, включно з незміненими. Це розширена опція, яка повинна використовуватися лише якщо потрібно запобігти зміні значень за замовчуванням іншими модами.
 
 Ви впевнені, що хочете продовжити?""",
     "set_directory_now": "Каталог гри не встановлено.\nХочете встановити його зараз?",
@@ -177,17 +185,7 @@ CONFIRMATIONS = {
 }
 
 # Instructions and help text
-INSTRUCTIONS = {
-    "input_ini_manual": """SCAM не зміг знайти розташування конфігурації Stalker 2.
-
-Файл Input.ini було створено в поточній папці.
-
-Будь ласка, скопіюйте цей файл Input.ini в одне з наступних місць:
-• Steam: %LOCALAPPDATA%\\Stalker2\\Saved\\Config\\Windows
-• Xbox: %LOCALAPPDATA%\\Stalker2\\Saved\\Config\\WinGDK"""
-}
+INSTRUCTIONS = {}
 
 # Status indicators  
-STATUS = {
-    "mouse_smoothing_success": "Налаштування згладжування миші були {action}"
-} 
+STATUS = {}
