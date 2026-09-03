@@ -50,15 +50,14 @@ Xbox: C:\XboxGames\S.T.A.L.K.E.R. 2- Heart of Chornobyl (Windows)\Content
 - Toggles: Allow movement while overweight, remove water movement slowdown
 ### Aiming & Controls
 - Mouse Sensitivity: Fine-tune horizontal and vertical look rates
-- Input Enhancement: Toggles for mouse smoothing, mouse slowdown, camera shake, and aim block removal
+- Input Enhancement: Toggles for mouse smoothing, mouse slowdown, camera shake, and ADS aim block removal
 - Sync Option: Synchronize turn and look rates for consistent sensitivity
 ### Preset Management
-- Built-in Presets: Access Default, V3Fish Recommended, and XY Sensitivity Fix configurations
+- Built-in Presets: Access Default, Recommended, and XY Sensitivity Fix configurations
 - Custom Presets: Save and load your personal configuration profiles
 - Quick Switching: Easily swap between different setups
 ### Mod Integration
 - Auto-Installation: Direct mod installation to your S.T.A.L.K.E.R. 2 directory
-- Conflict Detection: Warns about incompatible mods before installation
 - Advanced Options: Force default values to prevent other mods from overriding settings
 ### Multilingual Support
 - 5 Languages: English, Russian, Ukrainian, Korean, and Chinese localizations
