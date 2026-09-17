@@ -18,9 +18,8 @@ GUI tool for S.T.A.L.K.E.R. 2: Heart of Chornobyl to configure character movemen
 
 ## Download
 
-You can download SCAM from either:
-- [Nexus Mods](https://www.nexusmods.com/stalker2heartofchornobyl/mods/672) (Recommended - Download and Endorse :))
-- [GitHub Releases](https://github.com/v3fish/SCAMStalkerConfigurator/releases)
+You can download SCAM:
+- [Nexus Mods](https://www.nexusmods.com/stalker2heartofchornobyl/mods/672) (Download and Endorse :))
 
 ## Usage
 
